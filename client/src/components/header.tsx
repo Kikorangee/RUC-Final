@@ -1,11 +1,13 @@
-import { RefreshCw, Plus } from "lucide-react";
+import { RefreshCw, Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AddVehicleModal } from "@/components/add-vehicle-modal";
+import { CsvImportModal } from "@/components/csv-import-modal";
 import { useState } from "react";
 import { queryClient } from "@/lib/queryClient";
 
 export function Header() {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/vehicles"] });
@@ -29,6 +31,14 @@ export function Header() {
             >
               <RefreshCw className="w-4 h-4" />
             </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowImportModal(true)}
+              className="mr-3"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import CSV
+            </Button>
             <Button onClick={() => setShowAddModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Vehicle
@@ -37,6 +47,7 @@ export function Header() {
         </div>
       </header>
       <AddVehicleModal open={showAddModal} onOpenChange={setShowAddModal} />
+      <CsvImportModal open={showImportModal} onOpenChange={setShowImportModal} />
     </>
   );
 }
