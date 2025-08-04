@@ -8,7 +8,11 @@ import { UpdateOdometerModal } from "@/components/update-odometer-modal";
 import { RenewLicenseModal } from "@/components/renew-license-modal";
 import { useState } from "react";
 
-export function VehicleTable() {
+interface VehicleTableProps {
+  statusFilter?: string | null;
+}
+
+export function VehicleTable({ statusFilter }: VehicleTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleWithLicense | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -18,11 +22,17 @@ export function VehicleTable() {
     queryKey: ["/api/vehicles"],
   });
 
-  const filteredVehicles = vehicles.filter(vehicle =>
-    vehicle.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    vehicle.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredVehicles = vehicles.filter(vehicle => {
+    // Apply search filter
+    const matchesSearch = vehicle.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.model.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Apply status filter
+    const matchesStatus = statusFilter === null || vehicle.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -91,7 +101,14 @@ export function VehicleTable() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Vehicle Fleet Status</h3>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Vehicle Fleet Status</h3>
+              {statusFilter && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Showing {statusFilter === 'expiring' ? 'expiring soon' : statusFilter} vehicles ({filteredVehicles.length})
+                </p>
+              )}
+            </div>
             <div className="flex items-center space-x-3">
               <div className="relative">
                 <Input
@@ -103,10 +120,6 @@ export function VehicleTable() {
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               </div>
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
             </div>
           </div>
         </div>
