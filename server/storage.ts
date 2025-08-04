@@ -84,7 +84,8 @@ export class MemStorage implements IStorage {
       ...insertLicense,
       id,
       createdAt: new Date(),
-      purchaseDate: new Date()
+      purchaseDate: new Date(),
+      isActive: insertLicense.isActive || "true"
     };
     this.rucLicenses.set(id, license);
     return license;
