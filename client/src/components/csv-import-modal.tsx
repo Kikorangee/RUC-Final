@@ -87,9 +87,9 @@ export function CsvImportModal({ open, onOpenChange }: CsvImportModalProps) {
         model = descParts[1];
       }
       
-      // Parse odometer values - they're already in km in the CSV
-      const currentOdometer = Math.round(parseFloat(currentOdo));
-      const licenseEndOdometer = Math.round(parseFloat(expiredOdo));
+      // Parse odometer values - current is in meters, expired is in km
+      const currentOdometer = Math.round(parseFloat(currentOdo) / 1000); // Convert meters to km
+      const licenseEndOdometer = Math.round(parseFloat(expiredOdo)); // Already in km
       
       if (currentOdometer > 0 && licenseEndOdometer > 0 && currentOdometer < 10000000) { // Sanity check
         vehicles.push({
