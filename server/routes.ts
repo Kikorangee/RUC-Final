@@ -95,6 +95,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear all data (for testing)
+  app.delete("/api/data/clear", async (req, res) => {
+    try {
+      // Clear all vehicles and licenses
+      const allVehicles = await storage.getVehicles();
+      const allLicenses = await storage.getRucLicenses();
+      
+      for (const license of allLicenses) {
+        await storage.deactivateLicense(license.id);
+      }
+      
+      // Reset storage (this is a simple in-memory storage clear)
+      if (storage instanceof storage.constructor) {
+        (storage as any).vehicles = new Map();
+        (storage as any).rucLicenses = new Map();
+      }
+      
+      res.json({ message: "All data cleared successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to clear data" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

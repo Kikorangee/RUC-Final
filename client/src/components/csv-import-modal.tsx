@@ -39,13 +39,30 @@ export function CsvImportModal({ open, onOpenChange }: CsvImportModalProps) {
     // Skip header and process data lines
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line || line.startsWith(',,,')) break; // Stop at empty rows
+      if (!line || line.startsWith(',,,') || line.includes('Summary:')) break; // Stop at empty rows or summary
       
-      const columns = line.split(',');
+      // Split CSV line properly handling quoted values
+      const columns = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          columns.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      columns.push(current.trim()); // Add the last column
+      
       if (columns.length < 5) continue;
       
-      const description = columns[0]?.trim();
-      const fleetNumber = columns[1]?.trim();
+      const description = columns[0]?.replace(/"/g, '').trim();
+      const fleetNumber = columns[1]?.replace(/"/g, '').trim();
       const currentOdo = columns[3]?.replace(/[",]/g, '').trim();
       const expiredOdo = columns[4]?.replace(/[",]/g, '').trim();
       
@@ -53,14 +70,28 @@ export function CsvImportModal({ open, onOpenChange }: CsvImportModalProps) {
       
       // Parse vehicle description (e.g., "Toyota Hiace 2009")
       const descParts = description.split(' ');
-      const year = parseInt(descParts[descParts.length - 1]) || new Date().getFullYear();
+      const lastPart = descParts[descParts.length - 1];
+      const year = parseInt(lastPart) || new Date().getFullYear();
       const make = descParts[0] || 'Unknown';
-      const model = descParts.slice(1, -1).join(' ') || 'Unknown';
       
-      const currentOdometer = Math.round(parseFloat(currentOdo) / 1000); // Convert to km and round
+      // Handle model - everything between make and year
+      let model = 'Unknown';
+      if (descParts.length > 2) {
+        // If year is valid, exclude it from model
+        if (!isNaN(parseInt(lastPart))) {
+          model = descParts.slice(1, -1).join(' ') || 'Unknown';
+        } else {
+          model = descParts.slice(1).join(' ') || 'Unknown';
+        }
+      } else if (descParts.length === 2 && isNaN(parseInt(lastPart))) {
+        model = descParts[1];
+      }
+      
+      // Parse odometer values - they're already in km in the CSV
+      const currentOdometer = Math.round(parseFloat(currentOdo));
       const licenseEndOdometer = Math.round(parseFloat(expiredOdo));
       
-      if (currentOdometer > 0 && licenseEndOdometer > 0) {
+      if (currentOdometer > 0 && licenseEndOdometer > 0 && currentOdometer < 10000000) { // Sanity check
         vehicles.push({
           plateNumber: fleetNumber,
           make,
