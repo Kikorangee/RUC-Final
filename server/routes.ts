@@ -121,3 +121,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   return httpServer;
 }
+
+// Live odometer endpoint
+import axios from "axios";
+
+app.get("/api/odometer", async (req, res) => {
+    try {
+        const { sessionId, database } = req.query;
+        if (!sessionId || !database) {
+            return res.status(400).json({ error: "Missing sessionId or database" });
+        }
+
+        // Replace with your Geotab server URL if not my.geotab.com
+        const geotabApiUrl = "https://my.geotab.com/apiv1";
+
+        // Step 1: Get device list
+        const devicesResp = await axios.post(geotabApiUrl, {
+            method: "Get",
+            params: { typeName: "Device" },
+            credentials: { sessionId, database }
+        });
+        const devices = devicesResp.data.result;
+
+        // Step 2: Prepare odometer StatusData multi-call
+        const now = new Date().toISOString();
+        const calls = devices.map((device: any) => ({
+            method: "Get",
+            params: {
+                typeName: "StatusData",
+                search: {
+                    fromDate: now,
+                    toDate: now,
+                    diagnosticSearch: { id: "DiagnosticOdometerAdjustmentId" },
+                    deviceSearch: { id: device.id }
+                }
+            }
+        }));
+
+        const multiCallResp = await axios.post(geotabApiUrl, {
+            method: "ExecuteMultiCall",
+            params: { calls },
+            credentials: { sessionId, database }
+        });
+
+        // Map results
+        const odometerResults = devices.map((dev: any, i: number) => ({
+            id: dev.id,
+            name: dev.name,
+            vin: dev.vehicleIdentificationNumber,
+            odometer: multiCallResp.data.result[i]?.[0]?.data || null
+        }));
+
+        res.json(odometerResults);
+    } catch (err: any) {
+        console.error("Error fetching odometer:", err.message);
+        res.status(500).json({ error: "Failed to fetch odometer data" });
+    }
+});
