@@ -2,122 +2,66 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>RUC Management - Working Version</title>
+    <title>RUC Management - Bare Minimum</title>
     <script src="https://cdn.jsdelivr.net/npm/mg-api-js@2.0.1"></script>
 </head>
-<body style="font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5;">
-
+<body>
     <h1>RUC License Management</h1>
-    <p>MyGeotab Add-In for Road User Charges monitoring</p>
-
-    <!-- STATS SECTION -->
-    <div id="stats-section" style="margin: 20px 0; padding: 20px; background: white; border: 1px solid #ccc;">
-        <h2>Fleet Statistics</h2>
-        <div id="stats-cards">
-            <div style="display: inline-block; margin: 10px; padding: 15px; background: #e8f5e8; border: 1px solid #4CAF50; cursor: pointer;" onclick="setStatusFilter(null)">
-                <strong>Total Vehicles: <span id="total-count">0</span></strong>
-            </div>
-            <div style="display: inline-block; margin: 10px; padding: 15px; background: #e8f5e8; border: 1px solid #4CAF50; cursor: pointer;" onclick="setStatusFilter('active')">
-                <strong>Active: <span id="active-count">0</span></strong>
-            </div>
-            <div style="display: inline-block; margin: 10px; padding: 15px; background: #fff3e0; border: 1px solid #FF9800; cursor: pointer;" onclick="setStatusFilter('expiring')">
-                <strong>Expiring: <span id="expiring-count">0</span></strong>
-            </div>
-            <div style="display: inline-block; margin: 10px; padding: 15px; background: #ffebee; border: 1px solid #f44336; cursor: pointer;" onclick="setStatusFilter('expired')">
-                <strong>Expired: <span id="expired-count">0</span></strong>
-            </div>
-        </div>
+    
+    <h2>CSV Import</h2>
+    <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+    <button onclick="triggerCsvImport()" style="background: green; color: white; padding: 20px; font-size: 18px; margin: 10px; border: none; cursor: pointer;">IMPORT CSV FILE</button>
+    <button onclick="downloadCsvTemplate()" style="background: blue; color: white; padding: 20px; font-size: 18px; margin: 10px; border: none; cursor: pointer;">DOWNLOAD TEMPLATE</button>
+    <p id="csv-status" style="font-weight: bold; color: green;"></p>
+    
+    <div id="csv-preview" style="display: none; background: #f0f0f0; padding: 15px; margin: 10px; border: 1px solid #ccc;">
+        <h3>Preview:</h3>
+        <div id="csv-preview-content"></div>
+        <button onclick="confirmCsvImport()" style="background: green; color: white; padding: 10px; margin: 5px; border: none; cursor: pointer;">CONFIRM IMPORT</button>
+        <button onclick="cancelCsvImport()" style="background: gray; color: white; padding: 10px; margin: 5px; border: none; cursor: pointer;">CANCEL</button>
     </div>
-
-    <!-- CSV IMPORT SECTION -->
-    <div style="margin: 20px 0; padding: 20px; background: #f0f9f0; border: 2px solid #4CAF50;">
-        <h2>CSV Import</h2>
-        <p>Import vehicle data from CSV file</p>
-        
-        <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
-        
-        <button onclick="triggerCsvImport()" style="background: #4CAF50; color: white; border: none; padding: 15px 20px; margin: 5px; font-size: 16px; cursor: pointer; border-radius: 4px;">
-            IMPORT CSV FILE
-        </button>
-        
-        <button onclick="downloadCsvTemplate()" style="background: #2196F3; color: white; border: none; padding: 15px 20px; margin: 5px; font-size: 16px; cursor: pointer; border-radius: 4px;">
-            DOWNLOAD TEMPLATE
-        </button>
-        
-        <p id="csv-status" style="font-weight: bold; color: #2d5a2d; margin: 10px 0;"></p>
-        
-        <div id="csv-preview" style="display: none; margin-top: 15px; padding: 15px; background: white; border: 1px solid #ddd;">
-            <h3>Preview:</h3>
-            <div id="csv-preview-content"></div>
-            <button onclick="confirmCsvImport()" style="background: #4CAF50; color: white; border: none; padding: 10px 15px; margin: 5px; cursor: pointer;">
-                CONFIRM IMPORT
-            </button>
-            <button onclick="cancelCsvImport()" style="background: #666; color: white; border: none; padding: 10px 15px; margin: 5px; cursor: pointer;">
-                CANCEL
-            </button>
-        </div>
+    
+    <h2>Fleet Data</h2>
+    <button onclick="refreshOdometerData()" style="background: orange; color: white; padding: 20px; font-size: 18px; margin: 10px; border: none; cursor: pointer;">REFRESH ODOMETER</button>
+    
+    <div id="stats" style="margin: 20px;">
+        <p>Total Vehicles: <span id="total-count">0</span></p>
+        <p>Active: <span id="active-count">0</span></p>
+        <p>Expiring: <span id="expiring-count">0</span></p>
+        <p>Expired: <span id="expired-count">0</span></p>
     </div>
-
-    <!-- VEHICLE TABLE SECTION -->
-    <div style="margin: 20px 0; padding: 20px; background: white; border: 1px solid #ccc;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2>Vehicle List</h2>
-            <button id="refresh-btn" onclick="refreshOdometerData()" style="background: #2196F3; color: white; border: none; padding: 15px 20px; font-size: 16px; cursor: pointer; border-radius: 4px;">
-                <span id="refresh-icon">🔄</span> REFRESH ODOMETER
-            </button>
-        </div>
-        
-        <div id="vehicle-list"></div>
-        
-        <div id="loading-state" style="text-align: center; padding: 40px; color: #666;">
-            Loading vehicle data...
-        </div>
-    </div>
-
+    
+    <div id="vehicle-list" style="margin: 20px;"></div>
+    
     <script>
         let geotabApi = null;
-        let currentState = null;
         let vehicles = [];
-        let filteredVehicles = [];
-        let statusFilter = null;
         let csvImportData = null;
-
-        console.log('RUC Dashboard loading...');
-
-        // Initialize when page loads
-        window.addEventListener('load', function() {
-            console.log('Page loaded, setting up CSV import...');
-            setupCsvImport();
-            loadMockData(); // Start with mock data for testing
-        });
 
         // MyGeotab Add-In registration
         if (typeof geotab !== 'undefined') {
             geotab.addin.rucManagement = function(api, state) {
-                console.log('MyGeotab Add-In initializing...');
                 geotabApi = api;
-                currentState = state;
-                
                 return {
                     initialize: function(freshApi, freshState, callback) {
-                        console.log('Add-In initialize called');
+                        console.log('RUC Management Add-In initializing...');
                         geotabApi = freshApi;
-                        currentState = freshState;
                         setupCsvImport();
-                        loadVehicleData().then(callback).catch(callback);
+                        loadMockData();
+                        callback();
                     },
-                    
                     focus: function(freshApi, freshState) {
-                        console.log('Add-In focus called');
                         geotabApi = freshApi;
-                        currentState = freshState;
                     },
-                    
-                    blur: function() {
-                        console.log('Add-In blur called');
-                    }
+                    blur: function() {}
                 };
             };
+        } else {
+            // Load mock data for testing outside MyGeotab
+            window.addEventListener('load', function() {
+                setupCsvImport();
+                loadMockData();
+            });
         }
 
         function setupCsvImport() {
@@ -125,7 +69,7 @@
             const fileInput = document.getElementById('csv-file-input');
             if (fileInput) {
                 fileInput.addEventListener('change', handleCsvFile);
-                console.log('CSV file input event listener added');
+                console.log('CSV file input listener added');
             } else {
                 console.error('CSV file input not found!');
             }
@@ -134,13 +78,7 @@
         function triggerCsvImport() {
             console.log('CSV import button clicked!');
             document.getElementById('csv-status').textContent = 'Opening file picker...';
-            const fileInput = document.getElementById('csv-file-input');
-            if (fileInput) {
-                fileInput.click();
-            } else {
-                console.error('File input not found!');
-                document.getElementById('csv-status').textContent = 'Error: File input not found';
-            }
+            document.getElementById('csv-file-input').click();
         }
 
         function downloadCsvTemplate() {
@@ -242,8 +180,7 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
                     currentOdometer: currentOdometer,
                     licenseEndOdometer: licenseEndOdometer,
                     remainingDistance: remainingDistance,
-                    status: status,
-                    source: 'csv-import'
+                    status: status
                 });
             }
             
@@ -251,12 +188,11 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
         }
 
         function showCsvPreview(data) {
-            const preview = data.slice(0, 3);
             let html = `<p><strong>${data.length} vehicles found</strong></p>`;
             
-            preview.forEach(vehicle => {
+            data.slice(0, 3).forEach(vehicle => {
                 const color = vehicle.status === 'active' ? 'green' : vehicle.status === 'expiring' ? 'orange' : 'red';
-                html += `<div style="padding: 5px; border-bottom: 1px solid #eee;">
+                html += `<div style="padding: 5px; border-bottom: 1px solid #ccc;">
                     ${vehicle.plateNumber} - ${vehicle.make} ${vehicle.model} 
                     <span style="color: ${color}; font-weight: bold;">${vehicle.remainingDistance.toLocaleString()} km</span>
                 </div>`;
@@ -291,49 +227,32 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
 
         function refreshOdometerData() {
             console.log('Refresh button clicked!');
-            const refreshBtn = document.getElementById('refresh-btn');
-            const refreshIcon = document.getElementById('refresh-icon');
+            document.getElementById('csv-status').textContent = 'Refreshing odometer data...';
             
-            refreshBtn.disabled = true;
-            refreshIcon.innerHTML = '⏳';
-            refreshBtn.innerHTML = '<span>⏳</span> REFRESHING...';
+            // Simulate refresh
+            vehicles = vehicles.map(vehicle => {
+                const odometerChange = Math.floor(Math.random() * 50) + 10;
+                const newOdometer = vehicle.currentOdometer + odometerChange;
+                const remainingDistance = vehicle.licenseEndOdometer - newOdometer;
+                
+                let status = 'active';
+                if (remainingDistance <= 0) {
+                    status = 'expired';
+                } else if (remainingDistance <= 2000) {
+                    status = 'expiring';
+                }
+                
+                return {
+                    ...vehicle,
+                    currentOdometer: newOdometer,
+                    remainingDistance: remainingDistance,
+                    status: status
+                };
+            });
             
-            setTimeout(() => {
-                // Simulate refresh by updating odometer values
-                vehicles = vehicles.map(vehicle => {
-                    const odometerChange = Math.floor(Math.random() * 50) + 10;
-                    const newOdometer = vehicle.currentOdometer + odometerChange;
-                    const remainingDistance = vehicle.licenseEndOdometer - newOdometer;
-                    
-                    let status = 'active';
-                    if (remainingDistance <= 0) {
-                        status = 'expired';
-                    } else if (remainingDistance <= 2000) {
-                        status = 'expiring';
-                    }
-                    
-                    return {
-                        ...vehicle,
-                        currentOdometer: newOdometer,
-                        remainingDistance: remainingDistance,
-                        status: status,
-                        lastUpdated: new Date().toLocaleTimeString()
-                    };
-                });
-                
-                updateStats();
-                displayVehicles();
-                
-                refreshBtn.disabled = false;
-                refreshBtn.innerHTML = '<span id="refresh-icon">🔄</span> REFRESH ODOMETER';
-                document.getElementById('csv-status').textContent = 'Odometer data refreshed at ' + new Date().toLocaleTimeString();
-            }, 2000);
-        }
-
-        function setStatusFilter(status) {
-            statusFilter = status;
-            displayVehicles();
             updateStats();
+            displayVehicles();
+            document.getElementById('csv-status').textContent = 'Odometer data refreshed at ' + new Date().toLocaleTimeString();
         }
 
         function updateStats() {
@@ -349,47 +268,21 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
         }
 
         function displayVehicles() {
-            filteredVehicles = vehicles.filter(vehicle => {
-                return statusFilter === null || vehicle.status === statusFilter;
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<tr style="background: #f0f0f0;"><th style="padding: 10px; border: 1px solid #ccc;">Vehicle</th><th style="padding: 10px; border: 1px solid #ccc;">Status</th><th style="padding: 10px; border: 1px solid #ccc;">Odometer</th><th style="padding: 10px; border: 1px solid #ccc;">Remaining</th></tr>';
+            
+            vehicles.forEach(vehicle => {
+                const statusColor = vehicle.status === 'active' ? 'green' : vehicle.status === 'expiring' ? 'orange' : 'red';
+                html += `<tr>
+                    <td style="padding: 10px; border: 1px solid #ccc;">${vehicle.plateNumber} - ${vehicle.make} ${vehicle.model}</td>
+                    <td style="padding: 10px; border: 1px solid #ccc; color: ${statusColor}; font-weight: bold;">${vehicle.status.toUpperCase()}</td>
+                    <td style="padding: 10px; border: 1px solid #ccc;">${vehicle.currentOdometer.toLocaleString()} km</td>
+                    <td style="padding: 10px; border: 1px solid #ccc; color: ${statusColor}; font-weight: bold;">${vehicle.remainingDistance.toLocaleString()} km</td>
+                </tr>`;
             });
             
-            let html = '';
-            
-            if (filteredVehicles.length === 0) {
-                html = '<p style="text-align: center; color: #666; padding: 40px;">No vehicles to show</p>';
-            } else {
-                html = '<table style="width: 100%; border-collapse: collapse;">';
-                html += '<tr style="background: #f8f9fa;"><th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Vehicle</th><th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Status</th><th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Odometer</th><th style="padding: 10px; text-align: left; border-bottom: 1px solid #ddd;">Remaining</th></tr>';
-                
-                filteredVehicles.forEach(vehicle => {
-                    const statusColor = vehicle.status === 'active' ? '#4CAF50' : vehicle.status === 'expiring' ? '#FF9800' : '#f44336';
-                    const statusText = vehicle.status === 'active' ? '✅ Active' : vehicle.status === 'expiring' ? '⚠️ Expiring' : '❌ Expired';
-                    
-                    html += `<tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 10px;">
-                            <strong>${vehicle.plateNumber}</strong><br>
-                            <small>${vehicle.make} ${vehicle.model} ${vehicle.year}</small>
-                        </td>
-                        <td style="padding: 10px;">
-                            <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
-                        </td>
-                        <td style="padding: 10px;">
-                            ${vehicle.currentOdometer.toLocaleString()} km
-                            ${vehicle.lastUpdated ? `<br><small>Updated: ${vehicle.lastUpdated}</small>` : ''}
-                        </td>
-                        <td style="padding: 10px;">
-                            <span style="color: ${statusColor}; font-weight: bold;">
-                                ${vehicle.remainingDistance.toLocaleString()} km
-                            </span>
-                        </td>
-                    </tr>`;
-                });
-                
-                html += '</table>';
-            }
-            
+            html += '</table>';
             document.getElementById('vehicle-list').innerHTML = html;
-            document.getElementById('loading-state').style.display = 'none';
         }
 
         function loadMockData() {
@@ -415,72 +308,11 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
                     licenseEndOdometer: 78800,
                     remainingDistance: 800,
                     status: 'expiring'
-                },
-                {
-                    id: 'mock-3',
-                    plateNumber: 'TEST-003',
-                    make: 'Mitsubishi',
-                    model: 'Triton',
-                    year: 2021,
-                    currentOdometer: 65000,
-                    licenseEndOdometer: 64500,
-                    remainingDistance: -500,
-                    status: 'expired'
                 }
             ];
             
             updateStats();
             displayVehicles();
-        }
-
-        async function loadVehicleData() {
-            if (!geotabApi) {
-                loadMockData();
-                return;
-            }
-            
-            try {
-                console.log('Loading vehicle data from MyGeotab...');
-                const devices = await geotabApi.call('Get', { typeName: 'Device' });
-                
-                if (!devices || devices.length === 0) {
-                    document.getElementById('csv-status').textContent = 'No vehicles found in MyGeotab account';
-                    return;
-                }
-                
-                vehicles = devices.map(device => {
-                    const mockOdometer = Math.floor(Math.random() * 200000) + 50000;
-                    const mockLicenseEnd = mockOdometer + Math.floor(Math.random() * 5000) + 1000;
-                    const remainingDistance = mockLicenseEnd - mockOdometer;
-                    
-                    let status = 'active';
-                    if (remainingDistance <= 0) {
-                        status = 'expired';
-                    } else if (remainingDistance <= 2000) {
-                        status = 'expiring';
-                    }
-                    
-                    return {
-                        id: device.id,
-                        plateNumber: device.name || 'Unknown',
-                        make: 'Fleet',
-                        model: 'Vehicle',
-                        year: new Date().getFullYear(),
-                        currentOdometer: mockOdometer,
-                        licenseEndOdometer: mockLicenseEnd,
-                        remainingDistance: remainingDistance,
-                        status: status
-                    };
-                });
-                
-                updateStats();
-                displayVehicles();
-                
-            } catch (error) {
-                console.error('Error loading vehicle data:', error);
-                document.getElementById('csv-status').textContent = 'Error loading from MyGeotab: ' + error.message;
-                loadMockData();
-            }
         }
     </script>
 </body>
