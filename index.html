@@ -46,6 +46,16 @@
                     <p class="text-gray-500">⏳ Loading vehicle data from MyGeotab...</p>
                 </div>
                 
+                <div id="error-state" class="text-center py-12 hidden">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6 mx-6">
+                        <h4 class="text-red-800 font-semibold mb-2">API Error</h4>
+                        <p id="error-message" class="text-red-600 text-sm mb-4"></p>
+                        <button onclick="retryLoadData()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">
+                            Retry
+                        </button>
+                    </div>
+                </div>
+                
                 <div id="empty-state" class="text-center py-12 hidden">
                     <p class="text-gray-500">🚛 No vehicles found</p>
                 </div>
@@ -93,10 +103,20 @@
         async function loadVehicleData() {
             try {
                 showLoading(true);
+                hideError();
+                
+                console.log('Loading vehicle data from MyGeotab API...');
                 
                 const devices = await geotabApi.call('Get', {
                     typeName: 'Device'
                 });
+                
+                console.log(`Loaded ${devices.length} devices from API`);
+                
+                if (!devices || devices.length === 0) {
+                    showError('No vehicles found in your MyGeotab account. Please check your permissions or add vehicles to continue.');
+                    return;
+                }
                 
                 vehicles = transformMyGeotabData(devices);
                 
@@ -107,13 +127,19 @@
                 
             } catch (error) {
                 console.error('Error loading vehicle data:', error);
+                showError(getDetailedErrorMessage(error));
                 showLoading(false);
             }
+        }
+
+        function retryLoadData() {
+            loadVehicleData();
         }
 
         async function refreshOdometerData() {
             try {
                 setRefreshState(true);
+                hideError();
                 console.log('Refreshing odometer data...');
                 
                 // Get fresh device data
@@ -122,30 +148,40 @@
                     resultsLimit: 50
                 });
                 
-                await fetchLiveOdometerData(devices);
+                console.log(`Fetching live odometer data for ${devices.length} devices...`);
+                
+                const updatedCount = await fetchLiveOdometerData(devices);
                 
                 updateStatsCards();
                 filterAndDisplayVehicles();
                 
                 setRefreshState(false);
                 
+                // Show success message
+                if (updatedCount > 0) {
+                    console.log(`Successfully updated odometer data for ${updatedCount} vehicles`);
+                    showSuccessMessage(`Updated odometer data for ${updatedCount} vehicles`);
+                } else {
+                    showWarningMessage('No live odometer data available. Vehicles may be offline or not reporting.');
+                }
+                
             } catch (error) {
                 console.error('Error refreshing odometer data:', error);
                 setRefreshState(false);
+                showError(`Failed to refresh odometer data: ${getDetailedErrorMessage(error)}`);
             }
         }
 
         async function fetchLiveOdometerData(devices) {
             return new Promise((resolve, reject) => {
-                const group = {
-                    id: "GroupCompanyId" // Will use all devices if no specific group
-                };
                 const results = [];
                 const now = new Date().toISOString();
                 const calls = [];
                 const diagnostic = {
                     id: "DiagnosticOdometerAdjustmentId"
                 };
+
+                console.log('Setting up API calls for odometer data...');
 
                 devices.forEach(function (device) {
                     results.push({
@@ -168,15 +204,27 @@
                     });
                 });
 
+                console.log(`Executing ${calls.length} API calls for odometer data...`);
+
                 geotabApi.call("ExecuteMultiCall", {
                     calls: calls
                 }, function (callResults) {
                     try {
-                        let statusData, i;
+                        let statusData, i, updatedCount = 0;
+                        
+                        console.log(`Processing ${callResults.length} API responses...`);
+                        
                         for (i = 0; i < callResults.length; i++) {
-                            statusData = callResults[i][0];
-                            if (statusData) {
-                                results[i].odometer = statusData.data;
+                            if (callResults[i] && callResults[i].length > 0) {
+                                statusData = callResults[i][0];
+                                if (statusData && statusData.data) {
+                                    results[i].odometer = statusData.data;
+                                    console.log(`Got odometer data for ${results[i].name}: ${statusData.data}`);
+                                } else {
+                                    console.log(`No odometer data for ${results[i].name}`);
+                                }
+                            } else {
+                                console.log(`Empty response for ${results[i].name}`);
                             }
                         }
                         
@@ -194,6 +242,8 @@
                                     status = 'expiring';
                                 }
                                 
+                                updatedCount++;
+                                
                                 return {
                                     ...vehicle,
                                     currentOdometer: newOdometer,
@@ -205,11 +255,15 @@
                             return vehicle;
                         });
                         
-                        console.log('Updated vehicles with live odometer data:', vehicles);
-                        resolve();
+                        console.log(`Successfully updated ${updatedCount} vehicles with live odometer data`);
+                        resolve(updatedCount);
                     } catch (error) {
+                        console.error('Error processing odometer data:', error);
                         reject(error);
                     }
+                }, function(error) {
+                    console.error('ExecuteMultiCall failed:', error);
+                    reject(error);
                 });
             });
         }
@@ -393,9 +447,68 @@
             }
         }
 
+        function getDetailedErrorMessage(error) {
+            if (typeof error === 'string') return error;
+            
+            if (error.message) {
+                if (error.message.includes('permission') || error.message.includes('access')) {
+                    return 'Access denied. Please check your MyGeotab permissions for viewing devices and diagnostic data.';
+                }
+                if (error.message.includes('network') || error.message.includes('timeout')) {
+                    return 'Network error. Please check your internet connection and try again.';
+                }
+                if (error.message.includes('not found')) {
+                    return 'Data not found. The requested information may not be available.';
+                }
+                return error.message;
+            }
+            
+            return 'An unexpected error occurred. Please check the browser console for details.';
+        }
+
+        function showError(message) {
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-state').classList.remove('hidden');
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('empty-state').classList.add('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('error-state').classList.add('hidden');
+        }
+
+        function showSuccessMessage(message) {
+            // Create temporary success notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            notification.textContent = `✓ ${message}`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 3000);
+        }
+
+        function showWarningMessage(message) {
+            // Create temporary warning notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-orange-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            notification.textContent = `⚠ ${message}`;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 4000);
+        }
+
         function showLoading(show) {
             document.getElementById('loading-state').style.display = show ? 'block' : 'none';
             document.getElementById('vehicle-table-body').style.display = show ? 'none' : 'table-row-group';
+            
+            if (show) {
+                hideError();
+                document.getElementById('empty-state').classList.add('hidden');
+            }
         }
     </script>
 </body>
