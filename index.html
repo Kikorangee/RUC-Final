@@ -2,16 +2,56 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>RUC License Management</title>
+    <title>RUC License Management - Debug</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/mg-api-js@2.0.1"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
     <div id="ruc-management-app" class="p-6 max-w-7xl mx-auto">
         <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">RUC License Management</h1>
-            <p class="text-gray-600 mt-2">Monitor your fleet's Road User Charges license status with 2000km alert threshold</p>
+            <h1 class="text-3xl font-bold text-gray-900">RUC License Management - Debug Mode</h1>
+            <p class="text-gray-600 mt-2">Debug version to test API connectivity and refresh functionality</p>
+        </div>
+        
+        <!-- Debug Panel -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">Debug Information</h3>
+            <div id="debug-info" class="text-sm text-blue-800">
+                <p>Add-In Status: <span id="addin-status">Not Initialized</span></p>
+                <p>API Object: <span id="api-status">Not Available</span></p>
+                <p>Geotab API: <span id="geotab-api-status">Not Available</span></p>
+            </div>
+            <button onclick="testConnection()" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
+                Test API Connection
+            </button>
+        </div>
+        
+        <!-- CSV Import Panel -->
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <h3 class="text-lg font-semibold text-green-900 mb-2">Import Vehicle Data</h3>
+            <p class="text-sm text-green-800 mb-3">Import your RUC license data from a CSV file</p>
+            <div class="flex items-center gap-3">
+                <input type="file" id="csv-file-input" accept=".csv" class="hidden">
+                <button onclick="triggerCsvImport()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">
+                    Import CSV File
+                </button>
+                <button onclick="downloadCsvTemplate()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">
+                    Download Template
+                </button>
+                <span id="csv-status" class="text-sm text-green-800"></span>
+            </div>
+            <div id="csv-preview" class="mt-3 hidden">
+                <h4 class="font-semibold text-green-900 mb-2">Import Preview:</h4>
+                <div id="csv-preview-content" class="text-sm text-green-800"></div>
+                <div class="mt-3">
+                    <button onclick="confirmCsvImport()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm mr-2">
+                        Confirm Import
+                    </button>
+                    <button onclick="cancelCsvImport()" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
         </div>
         
         <div id="stats-cards" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"></div>
@@ -43,7 +83,7 @@
                 </table>
                 
                 <div id="loading-state" class="text-center py-12">
-                    <p class="text-gray-500">⏳ Loading vehicle data from MyGeotab...</p>
+                    <p class="text-gray-500">Loading vehicle data from MyGeotab...</p>
                 </div>
                 
                 <div id="error-state" class="text-center py-12 hidden">
@@ -57,7 +97,7 @@
                 </div>
                 
                 <div id="empty-state" class="text-center py-12 hidden">
-                    <p class="text-gray-500">🚛 No vehicles found</p>
+                    <p class="text-gray-500">No vehicles found</p>
                 </div>
             </div>
         </div>
@@ -69,36 +109,287 @@
         let vehicles = [];
         let filteredVehicles = [];
         let statusFilter = null;
+        let csvImportData = null;
 
-        geotab.addin.rucManagement = function(api, state) {
-            geotabApi = api;
-            currentState = state;
+        // Initialize debug mode
+        window.addEventListener('load', function() {
+            console.log('Debug mode loaded');
+            updateDebugInfo();
+            setupCsvImport();
             
-            return {
-                initialize: function(freshApi, freshState, callback) {
-                    console.log('RUC Management Add-In initializing...');
-                    geotabApi = freshApi;
-                    currentState = freshState;
+            // Check if we're in MyGeotab environment
+            if (typeof geotab !== 'undefined') {
+                document.getElementById('geotab-api-status').textContent = 'Available';
+            } else {
+                document.getElementById('geotab-api-status').textContent = 'Not Available (not in MyGeotab)';
+                // Show mock data for testing outside MyGeotab
+                setTimeout(() => {
+                    loadMockData();
+                }, 1000);
+            }
+        });
+
+        function setupCsvImport() {
+            const fileInput = document.getElementById('csv-file-input');
+            fileInput.addEventListener('change', handleCsvFile);
+        }
+
+        function triggerCsvImport() {
+            document.getElementById('csv-file-input').click();
+        }
+
+        function handleCsvFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('csv-status').textContent = 'Reading file...';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csv = e.target.result;
+                    const parsedData = parseCsvData(csv);
                     
-                    loadVehicleData().then(() => {
-                        callback();
-                    }).catch(error => {
-                        console.error('Failed to load initial data:', error);
-                        callback();
-                    });
-                },
-                
-                focus: function(freshApi, freshState) {
-                    geotabApi = freshApi;
-                    currentState = freshState;
-                    loadVehicleData();
-                },
-                
-                blur: function() {
-                    console.log('RUC Management Add-In blur');
+                    if (parsedData.length === 0) {
+                        showError('CSV file appears to be empty or invalid');
+                        return;
+                    }
+                    
+                    csvImportData = parsedData;
+                    showCsvPreview(parsedData);
+                    document.getElementById('csv-status').textContent = `Found ${parsedData.length} vehicles in CSV`;
+                    
+                } catch (error) {
+                    console.error('Error parsing CSV:', error);
+                    showError('Error reading CSV file: ' + error.message);
+                    document.getElementById('csv-status').textContent = 'Error reading file';
                 }
             };
-        };
+            
+            reader.onerror = function() {
+                showError('Error reading CSV file');
+                document.getElementById('csv-status').textContent = 'Error reading file';
+            };
+            
+            reader.readAsText(file);
+        }
+
+        function parseCsvData(csv) {
+            const lines = csv.split('\n').filter(line => line.trim() !== '');
+            if (lines.length < 2) {
+                throw new Error('CSV must have at least a header row and one data row');
+            }
+            
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            console.log('CSV Headers:', headers);
+            
+            // Validate required columns
+            const requiredColumns = ['plate', 'make', 'model', 'year', 'odometer', 'license_end_odometer'];
+            const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+            
+            if (missingColumns.length > 0) {
+                throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
+            }
+            
+            const vehicles = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                
+                if (values.length !== headers.length) {
+                    console.warn(`Row ${i + 1} has ${values.length} columns, expected ${headers.length}`);
+                    continue;
+                }
+                
+                const vehicle = {};
+                headers.forEach((header, index) => {
+                    vehicle[header] = values[index];
+                });
+                
+                // Validate and transform data
+                try {
+                    const currentOdometer = parseInt(vehicle.odometer);
+                    const licenseEndOdometer = parseInt(vehicle.license_end_odometer);
+                    const year = parseInt(vehicle.year);
+                    
+                    if (isNaN(currentOdometer) || isNaN(licenseEndOdometer) || isNaN(year)) {
+                        throw new Error(`Invalid numeric values in row ${i + 1}`);
+                    }
+                    
+                    const remainingDistance = licenseEndOdometer - currentOdometer;
+                    let status = 'active';
+                    if (remainingDistance <= 0) {
+                        status = 'expired';
+                    } else if (remainingDistance <= 2000) {
+                        status = 'expiring';
+                    }
+                    
+                    vehicles.push({
+                        id: 'csv-' + i,
+                        plateNumber: vehicle.plate || 'Unknown',
+                        make: vehicle.make || 'Unknown',
+                        model: vehicle.model || 'Unknown',
+                        year: year,
+                        currentOdometer: currentOdometer,
+                        licenseEndOdometer: licenseEndOdometer,
+                        remainingDistance: remainingDistance,
+                        status: status,
+                        source: 'csv-import'
+                    });
+                    
+                } catch (error) {
+                    console.warn(`Error processing row ${i + 1}:`, error.message);
+                }
+            }
+            
+            return vehicles;
+        }
+
+        function showCsvPreview(data) {
+            const preview = data.slice(0, 3); // Show first 3 vehicles
+            const previewHtml = `
+                <p class="mb-2"><strong>${data.length} vehicles found</strong></p>
+                <div class="bg-white rounded p-3 border">
+                    ${preview.map(vehicle => `
+                        <div class="flex justify-between py-1 border-b last:border-b-0">
+                            <span>${vehicle.plateNumber} - ${vehicle.make} ${vehicle.model}</span>
+                            <span class="text-${vehicle.status === 'active' ? 'green' : vehicle.status === 'expiring' ? 'orange' : 'red'}-600">
+                                ${vehicle.remainingDistance.toLocaleString()} km
+                            </span>
+                        </div>
+                    `).join('')}
+                    ${data.length > 3 ? `<div class="py-1 text-gray-500">... and ${data.length - 3} more vehicles</div>` : ''}
+                </div>
+            `;
+            
+            document.getElementById('csv-preview-content').innerHTML = previewHtml;
+            document.getElementById('csv-preview').classList.remove('hidden');
+        }
+
+        function confirmCsvImport() {
+            if (!csvImportData || csvImportData.length === 0) {
+                showError('No CSV data to import');
+                return;
+            }
+            
+            vehicles = csvImportData;
+            updateStatsCards();
+            filterAndDisplayVehicles();
+            updateDebugInfo();
+            
+            cancelCsvImport();
+            showSuccessMessage(`Successfully imported ${vehicles.length} vehicles from CSV`);
+            
+            console.log('Imported vehicles:', vehicles);
+        }
+
+        function cancelCsvImport() {
+            document.getElementById('csv-preview').classList.add('hidden');
+            document.getElementById('csv-status').textContent = '';
+            document.getElementById('csv-file-input').value = '';
+            csvImportData = null;
+        }
+
+        function downloadCsvTemplate() {
+            const template = `plate,make,model,year,odometer,license_end_odometer
+TEST-001,Toyota,Hilux,2023,45000,47500
+TEST-002,Ford,Ranger,2022,78000,78800
+TEST-003,Mitsubishi,Triton,2021,65000,64500`;
+            
+            const blob = new Blob([template], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ruc_vehicle_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showSuccessMessage('CSV template downloaded');
+        }
+
+        // MyGeotab Add-In registration
+        if (typeof geotab !== 'undefined') {
+            geotab.addin.rucManagement = function(api, state) {
+                console.log('Add-In initializing with API:', api);
+                geotabApi = api;
+                currentState = state;
+                
+                return {
+                    initialize: function(freshApi, freshState, callback) {
+                        console.log('RUC Management Add-In initializing...');
+                        geotabApi = freshApi;
+                        currentState = freshState;
+                        
+                        document.getElementById('addin-status').textContent = 'Initialized';
+                        document.getElementById('api-status').textContent = 'Available';
+                        updateDebugInfo();
+                        
+                        loadVehicleData().then(() => {
+                            callback();
+                        }).catch(error => {
+                            console.error('Failed to load initial data:', error);
+                            showError('Failed to load initial data: ' + error.message);
+                            callback();
+                        });
+                    },
+                    
+                    focus: function(freshApi, freshState) {
+                        geotabApi = freshApi;
+                        currentState = freshState;
+                        console.log('Add-In focused');
+                        loadVehicleData();
+                    },
+                    
+                    blur: function() {
+                        console.log('RUC Management Add-In blur');
+                    }
+                };
+            };
+        }
+
+        function updateDebugInfo() {
+            const debugInfo = document.getElementById('debug-info');
+            const now = new Date().toLocaleTimeString();
+            
+            let status = 'API Available: ' + (geotabApi ? 'Yes' : 'No');
+            status += ' | Time: ' + now;
+            status += ' | Vehicles: ' + vehicles.length;
+            
+            const statusElement = debugInfo.querySelector('p:last-child') || document.createElement('p');
+            statusElement.textContent = status;
+            if (!debugInfo.contains(statusElement)) {
+                debugInfo.appendChild(statusElement);
+            }
+        }
+
+        async function testConnection() {
+            console.log('Testing API connection...');
+            
+            if (!geotabApi) {
+                showError('No API available. Make sure this Add-In is installed in MyGeotab.');
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                const devices = await geotabApi.call('Get', {
+                    typeName: 'Device',
+                    resultsLimit: 1
+                });
+                
+                console.log('API test successful. Found devices:', devices.length);
+                showSuccessMessage('API connection successful! Found ' + devices.length + ' device(s)');
+                showLoading(false);
+                
+            } catch (error) {
+                console.error('API test failed:', error);
+                showError('API test failed: ' + error.message);
+                showLoading(false);
+            }
+        }
 
         async function loadVehicleData() {
             try {
@@ -107,11 +398,15 @@
                 
                 console.log('Loading vehicle data from MyGeotab API...');
                 
+                if (!geotabApi) {
+                    throw new Error('MyGeotab API not available');
+                }
+                
                 const devices = await geotabApi.call('Get', {
                     typeName: 'Device'
                 });
                 
-                console.log(`Loaded ${devices.length} devices from API`);
+                console.log('Loaded ' + devices.length + ' devices from API');
                 
                 if (!devices || devices.length === 0) {
                     showError('No vehicles found in your MyGeotab account. Please check your permissions or add vehicles to continue.');
@@ -122,45 +417,94 @@
                 
                 updateStatsCards();
                 filterAndDisplayVehicles();
+                updateDebugInfo();
                 
                 showLoading(false);
                 
             } catch (error) {
                 console.error('Error loading vehicle data:', error);
-                showError(getDetailedErrorMessage(error));
+                showError('Failed to load vehicle data: ' + error.message);
                 showLoading(false);
             }
         }
 
-        function retryLoadData() {
-            loadVehicleData();
+        function loadMockData() {
+            console.log('Loading mock data for testing...');
+            
+            vehicles = [
+                {
+                    id: 'mock-1',
+                    plateNumber: 'TEST-001',
+                    make: 'Toyota',
+                    model: 'Hilux',
+                    year: 2023,
+                    currentOdometer: 45000,
+                    licenseEndOdometer: 47500,
+                    remainingDistance: 2500,
+                    status: 'active'
+                },
+                {
+                    id: 'mock-2',
+                    plateNumber: 'TEST-002',
+                    make: 'Ford',
+                    model: 'Ranger',
+                    year: 2022,
+                    currentOdometer: 78000,
+                    licenseEndOdometer: 78800,
+                    remainingDistance: 800,
+                    status: 'expiring'
+                },
+                {
+                    id: 'mock-3',
+                    plateNumber: 'TEST-003',
+                    make: 'Mitsubishi',
+                    model: 'Triton',
+                    year: 2021,
+                    currentOdometer: 65000,
+                    licenseEndOdometer: 64500,
+                    remainingDistance: -500,
+                    status: 'expired'
+                }
+            ];
+            
+            updateStatsCards();
+            filterAndDisplayVehicles();
+            updateDebugInfo();
+            showLoading(false);
         }
 
         async function refreshOdometerData() {
+            console.log('Refresh button clicked!');
+            
+            if (!geotabApi) {
+                console.log('No API available, using mock refresh');
+                mockRefresh();
+                return;
+            }
+            
             try {
                 setRefreshState(true);
                 hideError();
                 console.log('Refreshing odometer data...');
                 
-                // Get fresh device data
                 const devices = await geotabApi.call('Get', {
                     typeName: 'Device',
                     resultsLimit: 50
                 });
                 
-                console.log(`Fetching live odometer data for ${devices.length} devices...`);
+                console.log('Fetching live odometer data for ' + devices.length + ' devices...');
                 
                 const updatedCount = await fetchLiveOdometerData(devices);
                 
                 updateStatsCards();
                 filterAndDisplayVehicles();
+                updateDebugInfo();
                 
                 setRefreshState(false);
                 
-                // Show success message
                 if (updatedCount > 0) {
-                    console.log(`Successfully updated odometer data for ${updatedCount} vehicles`);
-                    showSuccessMessage(`Updated odometer data for ${updatedCount} vehicles`);
+                    console.log('Successfully updated odometer data for ' + updatedCount + ' vehicles');
+                    showSuccessMessage('Updated odometer data for ' + updatedCount + ' vehicles');
                 } else {
                     showWarningMessage('No live odometer data available. Vehicles may be offline or not reporting.');
                 }
@@ -168,8 +512,42 @@
             } catch (error) {
                 console.error('Error refreshing odometer data:', error);
                 setRefreshState(false);
-                showError(`Failed to refresh odometer data: ${getDetailedErrorMessage(error)}`);
+                showError('Failed to refresh odometer data: ' + error.message);
             }
+        }
+
+        function mockRefresh() {
+            setRefreshState(true);
+            
+            setTimeout(() => {
+                // Simulate odometer updates
+                vehicles = vehicles.map(vehicle => {
+                    const odometerChange = Math.floor(Math.random() * 50) + 10;
+                    const newOdometer = vehicle.currentOdometer + odometerChange;
+                    const remainingDistance = vehicle.licenseEndOdometer - newOdometer;
+                    
+                    let status = 'active';
+                    if (remainingDistance <= 0) {
+                        status = 'expired';
+                    } else if (remainingDistance <= 2000) {
+                        status = 'expiring';
+                    }
+                    
+                    return {
+                        ...vehicle,
+                        currentOdometer: newOdometer,
+                        remainingDistance: remainingDistance,
+                        status: status,
+                        lastUpdated: new Date().toLocaleTimeString()
+                    };
+                });
+                
+                updateStatsCards();
+                filterAndDisplayVehicles();
+                updateDebugInfo();
+                setRefreshState(false);
+                showSuccessMessage('Mock refresh completed - odometer values updated');
+            }, 1500);
         }
 
         async function fetchLiveOdometerData(devices) {
@@ -204,7 +582,7 @@
                     });
                 });
 
-                console.log(`Executing ${calls.length} API calls for odometer data...`);
+                console.log('Executing ' + calls.length + ' API calls for odometer data...');
 
                 geotabApi.call("ExecuteMultiCall", {
                     calls: calls
@@ -212,19 +590,19 @@
                     try {
                         let statusData, i, updatedCount = 0;
                         
-                        console.log(`Processing ${callResults.length} API responses...`);
+                        console.log('Processing ' + callResults.length + ' API responses...');
                         
                         for (i = 0; i < callResults.length; i++) {
                             if (callResults[i] && callResults[i].length > 0) {
                                 statusData = callResults[i][0];
                                 if (statusData && statusData.data) {
                                     results[i].odometer = statusData.data;
-                                    console.log(`Got odometer data for ${results[i].name}: ${statusData.data}`);
+                                    console.log('Got odometer data for ' + results[i].name + ': ' + statusData.data);
                                 } else {
-                                    console.log(`No odometer data for ${results[i].name}`);
+                                    console.log('No odometer data for ' + results[i].name);
                                 }
                             } else {
-                                console.log(`Empty response for ${results[i].name}`);
+                                console.log('Empty response for ' + results[i].name);
                             }
                         }
                         
@@ -255,7 +633,7 @@
                             return vehicle;
                         });
                         
-                        console.log(`Successfully updated ${updatedCount} vehicles with live odometer data`);
+                        console.log('Successfully updated ' + updatedCount + ' vehicles with live odometer data');
                         resolve(updatedCount);
                     } catch (error) {
                         console.error('Error processing odometer data:', error);
@@ -266,6 +644,10 @@
                     reject(error);
                 });
             });
+        }
+
+        function retryLoadData() {
+            loadVehicleData();
         }
 
         function transformMyGeotabData(devices) {
@@ -350,7 +732,7 @@
             
             if (statusFilter) {
                 const statusName = statusFilter === 'expiring' ? 'expiring soon' : statusFilter;
-                filterInfo.textContent = `Showing ${filteredVehicles.length} of ${vehicles.length} vehicles (status: ${statusName})`;
+                filterInfo.textContent = 'Showing ' + filteredVehicles.length + ' of ' + vehicles.length + ' vehicles (status: ' + statusName + ')';
                 filterInfo.classList.remove('hidden');
             } else {
                 filterInfo.classList.add('hidden');
@@ -390,7 +772,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">${vehicle.currentOdometer.toLocaleString()} km</div>
-                            ${vehicle.lastUpdated ? `<div class="text-xs text-gray-500">Updated: ${vehicle.lastUpdated}</div>` : ''}
+                            ${vehicle.lastUpdated ? '<div class="text-xs text-gray-500">Updated: ' + vehicle.lastUpdated + '</div>' : ''}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="text-sm font-medium ${getDistanceColor(vehicle.status)}">
@@ -424,9 +806,9 @@
 
         function formatDistance(distance) {
             if (distance < 0) {
-                return `-${Math.abs(distance).toLocaleString()} km`;
+                return '-' + Math.abs(distance).toLocaleString() + ' km';
             }
-            return `${distance.toLocaleString()} km`;
+            return distance.toLocaleString() + ' km';
         }
 
         function setRefreshState(isRefreshing) {
@@ -447,25 +829,6 @@
             }
         }
 
-        function getDetailedErrorMessage(error) {
-            if (typeof error === 'string') return error;
-            
-            if (error.message) {
-                if (error.message.includes('permission') || error.message.includes('access')) {
-                    return 'Access denied. Please check your MyGeotab permissions for viewing devices and diagnostic data.';
-                }
-                if (error.message.includes('network') || error.message.includes('timeout')) {
-                    return 'Network error. Please check your internet connection and try again.';
-                }
-                if (error.message.includes('not found')) {
-                    return 'Data not found. The requested information may not be available.';
-                }
-                return error.message;
-            }
-            
-            return 'An unexpected error occurred. Please check the browser console for details.';
-        }
-
         function showError(message) {
             document.getElementById('error-message').textContent = message;
             document.getElementById('error-state').classList.remove('hidden');
@@ -478,26 +841,28 @@
         }
 
         function showSuccessMessage(message) {
-            // Create temporary success notification
             const notification = document.createElement('div');
             notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-            notification.textContent = `✓ ${message}`;
+            notification.textContent = '✓ ' + message;
             document.body.appendChild(notification);
             
             setTimeout(() => {
-                document.body.removeChild(notification);
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
             }, 3000);
         }
 
         function showWarningMessage(message) {
-            // Create temporary warning notification
             const notification = document.createElement('div');
             notification.className = 'fixed top-4 right-4 bg-orange-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-            notification.textContent = `⚠ ${message}`;
+            notification.textContent = '⚠ ' + message;
             document.body.appendChild(notification);
             
             setTimeout(() => {
-                document.body.removeChild(notification);
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
             }, 4000);
         }
 
