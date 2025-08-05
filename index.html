@@ -2,287 +2,102 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>RUC License Management</title>
+    <title>RUC License Management - Debug</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .header {
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            font-size: 2rem;
-            color: #333;
-            margin: 0 0 10px 0;
-        }
-        .header p {
-            color: #666;
-            margin: 0;
-        }
-        .panel {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .import-panel {
-            background: #f0f9f0;
-            border-color: #c3e6c3;
-        }
-        .import-panel h3 {
-            color: #2d5a2d;
-            margin: 0 0 10px 0;
-        }
-        .import-panel p {
-            color: #4a744a;
-            margin: 0 0 15px 0;
-        }
-        .button-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        button:hover {
-            background: #45a049;
-        }
-        button:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-        }
-        .refresh-btn {
-            background: #2196F3;
-        }
-        .refresh-btn:hover {
-            background: #1976D2;
-        }
-        .cancel-btn {
-            background: #666;
-        }
-        .cancel-btn:hover {
-            background: #555;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            cursor: pointer;
-            transition: box-shadow 0.2s;
-        }
-        .stat-card:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .stat-card.active {
-            border: 2px solid #2196F3;
-        }
-        .stat-card.green {
-            background: #f0f9f0;
-        }
-        .stat-card.orange {
-            background: #fff7e6;
-        }
-        .stat-card.red {
-            background: #ffebee;
-        }
-        .table-container {
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background: #f8f9fa;
-            font-weight: bold;
-            color: #333;
-        }
-        tr:hover {
-            background: #f8f9fa;
-        }
-        .vehicle-icon {
-            display: inline-block;
-            width: 30px;
-            height: 30px;
-            background: #e0e0e0;
-            border-radius: 4px;
-            text-align: center;
-            line-height: 30px;
-            margin-right: 10px;
-        }
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .status-active {
-            background: #e8f5e8;
-            color: #2e7d32;
-        }
-        .status-expiring {
-            background: #fff3e0;
-            color: #f57c00;
-        }
-        .status-expired {
-            background: #ffebee;
-            color: #d32f2f;
-        }
-        .preview-box {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-        .preview-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .preview-item:last-child {
-            border-bottom: none;
-        }
-        .hidden {
-            display: none;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        .error {
-            background: #ffebee;
-            border: 1px solid #f8bbd9;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 20px 0;
-            color: #d32f2f;
-        }
-        .success {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #4CAF50;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 4px;
-            z-index: 1000;
-        }
-        .warning {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #FF9800;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 4px;
-            z-index: 1000;
-        }
-        .csv-status {
-            color: #4a744a;
-            font-size: 14px;
-        }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>RUC License Management</h1>
-            <p>Monitor your fleet's Road User Charges license status with 2000km alert threshold</p>
+<body class="bg-gray-50">
+    <div id="ruc-management-app" class="p-6 max-w-7xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">RUC License Management - Debug Mode</h1>
+            <p class="text-gray-600 mt-2">Debug version to test API connectivity and refresh functionality</p>
         </div>
         
-        <div id="stats-cards" class="stats-grid"></div>
-
-        <!-- CSV Import Panel -->
-        <div class="panel import-panel">
-            <h3>Import Vehicle Data</h3>
-            <p>Import your RUC license data from a CSV file</p>
-            <div class="button-row">
-                <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
-                <button onclick="triggerCsvImport()">Import CSV File</button>
-                <button onclick="downloadCsvTemplate()">Download Template</button>
-                <span id="csv-status" class="csv-status"></span>
+        <!-- Debug Panel -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 class="text-lg font-semibold text-blue-900 mb-2">Debug Information</h3>
+            <div id="debug-info" class="text-sm text-blue-800">
+                <p>Add-In Status: <span id="addin-status">Not Initialized</span></p>
+                <p>API Object: <span id="api-status">Not Available</span></p>
+                <p>Geotab API: <span id="geotab-api-status">Not Available</span></p>
             </div>
-            <div id="csv-preview" class="hidden">
-                <h4>Import Preview:</h4>
-                <div id="csv-preview-content"></div>
-                <div style="margin-top: 15px;">
-                    <button onclick="confirmCsvImport()">Confirm Import</button>
-                    <button onclick="cancelCsvImport()" class="cancel-btn">Cancel</button>
+            <button onclick="testConnection()" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
+                Test API Connection
+            </button>
+        </div>
+        
+        <!-- CSV Import Panel -->
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <h3 class="text-lg font-semibold text-green-900 mb-2">Import Vehicle Data</h3>
+            <p class="text-sm text-green-800 mb-3">Import your RUC license data from a CSV file</p>
+            <div class="flex items-center gap-3">
+                <input type="file" id="csv-file-input" accept=".csv" class="hidden">
+                <button onclick="triggerCsvImport()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">
+                    Import CSV File
+                </button>
+                <button onclick="downloadCsvTemplate()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">
+                    Download Template
+                </button>
+                <span id="csv-status" class="text-sm text-green-800"></span>
+            </div>
+            <div id="csv-preview" class="mt-3 hidden">
+                <h4 class="font-semibold text-green-900 mb-2">Import Preview:</h4>
+                <div id="csv-preview-content" class="text-sm text-green-800"></div>
+                <div class="mt-3">
+                    <button onclick="confirmCsvImport()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm mr-2">
+                        Confirm Import
+                    </button>
+                    <button onclick="cancelCsvImport()" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm">
+                        Cancel
+                    </button>
                 </div>
             </div>
         </div>
+        
+        <div id="stats-cards" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"></div>
 
-        <div class="panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                 <div>
-                    <h3 style="margin: 0;">Fleet License Status</h3>
-                    <p id="filter-info" style="margin: 5px 0 0 0; color: #666; font-size: 14px;" class="hidden"></p>
+                    <h3 class="text-lg font-semibold text-gray-900">Fleet License Status</h3>
+                    <p id="filter-info" class="text-sm text-gray-600 mt-1 hidden"></p>
                 </div>
-                <button id="refresh-btn" onclick="refreshOdometerData()" class="refresh-btn">
-                    <span id="refresh-icon">🔄</span>
+                <button id="refresh-btn" onclick="refreshOdometerData()" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                    <span id="refresh-icon" class="mr-2">🔄</span>
                     <span id="refresh-text">Refresh Odometer</span>
                 </button>
             </div>
             
-            <div class="table-container">
-                <table>
-                    <thead>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th>Vehicle</th>
-                            <th>License Status</th>
-                            <th>Current Odometer</th>
-                            <th>Remaining Distance</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">License Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Odometer</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining Distance</th>
                         </tr>
                     </thead>
-                    <tbody id="vehicle-table-body">
+                    <tbody id="vehicle-table-body" class="bg-white divide-y divide-gray-200">
                     </tbody>
                 </table>
                 
-                <div id="loading-state" class="loading">
-                    <p>Loading vehicle data from MyGeotab...</p>
+                <div id="loading-state" class="text-center py-12">
+                    <p class="text-gray-500">Loading vehicle data from MyGeotab...</p>
                 </div>
                 
-                <div id="error-state" class="error hidden">
-                    <h4>API Error</h4>
-                    <p id="error-message"></p>
-                    <button onclick="retryLoadData()">Retry</button>
+                <div id="error-state" class="text-center py-12 hidden">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6 mx-6">
+                        <h4 class="text-red-800 font-semibold mb-2">API Error</h4>
+                        <p id="error-message" class="text-red-600 text-sm mb-4"></p>
+                        <button onclick="retryLoadData()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm">
+                            Retry
+                        </button>
+                    </div>
                 </div>
                 
-                <div id="empty-state" class="loading hidden">
-                    <p>No vehicles found</p>
+                <div id="empty-state" class="text-center py-12 hidden">
+                    <p class="text-gray-500">No vehicles found</p>
                 </div>
             </div>
         </div>
@@ -296,89 +111,34 @@
         let statusFilter = null;
         let csvImportData = null;
 
-        // Initialize
+        // Initialize debug mode
         window.addEventListener('load', function() {
-            console.log('RUC Dashboard loaded');
+            console.log('Debug mode loaded');
+            updateDebugInfo();
             setupCsvImport();
-            loadMockData(); // Load some data to test buttons
+            
+            // Check if we're in MyGeotab environment
+            if (typeof geotab !== 'undefined') {
+                document.getElementById('geotab-api-status').textContent = 'Available';
+            } else {
+                document.getElementById('geotab-api-status').textContent = 'Not Available (not in MyGeotab)';
+                // Show mock data for testing outside MyGeotab
+                setTimeout(() => {
+                    loadMockData();
+                }, 1000);
+            }
         });
-
-        // MyGeotab Add-In registration
-        if (typeof geotab !== 'undefined') {
-            geotab.addin.rucManagement = function(api, state) {
-                geotabApi = api;
-                currentState = state;
-                
-                return {
-                    initialize: function(freshApi, freshState, callback) {
-                        console.log('RUC Management Add-In initializing...');
-                        geotabApi = freshApi;
-                        currentState = freshState;
-                        
-                        setupCsvImport();
-                        loadVehicleData().then(() => {
-                            callback();
-                        }).catch(error => {
-                            console.error('Failed to load initial data:', error);
-                            callback();
-                        });
-                    },
-                    
-                    focus: function(freshApi, freshState) {
-                        geotabApi = freshApi;
-                        currentState = freshState;
-                        loadVehicleData();
-                    },
-                    
-                    blur: function() {
-                        console.log('RUC Management Add-In blur');
-                    }
-                };
-            };
-        }
 
         function setupCsvImport() {
             const fileInput = document.getElementById('csv-file-input');
-            if (fileInput) {
-                fileInput.addEventListener('change', handleCsvFile);
-                console.log('CSV import setup complete');
-            } else {
-                console.error('CSV file input not found');
-            }
+            fileInput.addEventListener('change', handleCsvFile);
         }
 
         function triggerCsvImport() {
-            console.log('CSV import button clicked');
-            const fileInput = document.getElementById('csv-file-input');
-            if (fileInput) {
-                fileInput.click();
-            } else {
-                console.error('CSV file input not found');
-            }
-        }
-
-        function downloadCsvTemplate() {
-            console.log('Download template button clicked');
-            const template = `plate,make,model,year,odometer,license_end_odometer
-TEST-001,Toyota,Hilux,2023,45000,47500
-TEST-002,Ford,Ranger,2022,78000,78800
-TEST-003,Mitsubishi,Triton,2021,65000,64500`;
-            
-            const blob = new Blob([template], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'ruc_vehicle_template.csv';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            
-            showSuccessMessage('CSV template downloaded');
+            document.getElementById('csv-file-input').click();
         }
 
         function handleCsvFile(event) {
-            console.log('CSV file selected');
             const file = event.target.files[0];
             if (!file) return;
 
@@ -406,6 +166,11 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
                 }
             };
             
+            reader.onerror = function() {
+                showError('Error reading CSV file');
+                document.getElementById('csv-status').textContent = 'Error reading file';
+            };
+            
             reader.readAsText(file);
         }
 
@@ -416,6 +181,9 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
             }
             
             const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            console.log('CSV Headers:', headers);
+            
+            // Validate required columns
             const requiredColumns = ['plate', 'make', 'model', 'year', 'odometer', 'license_end_odometer'];
             const missingColumns = requiredColumns.filter(col => !headers.includes(col));
             
@@ -429,6 +197,7 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
                 const values = lines[i].split(',').map(v => v.trim());
                 
                 if (values.length !== headers.length) {
+                    console.warn(`Row ${i + 1} has ${values.length} columns, expected ${headers.length}`);
                     continue;
                 }
                 
@@ -437,13 +206,14 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
                     vehicle[header] = values[index];
                 });
                 
+                // Validate and transform data
                 try {
                     const currentOdometer = parseInt(vehicle.odometer);
                     const licenseEndOdometer = parseInt(vehicle.license_end_odometer);
                     const year = parseInt(vehicle.year);
                     
                     if (isNaN(currentOdometer) || isNaN(licenseEndOdometer) || isNaN(year)) {
-                        continue;
+                        throw new Error(`Invalid numeric values in row ${i + 1}`);
                     }
                     
                     const remainingDistance = licenseEndOdometer - currentOdometer;
@@ -476,19 +246,19 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
         }
 
         function showCsvPreview(data) {
-            const preview = data.slice(0, 3);
+            const preview = data.slice(0, 3); // Show first 3 vehicles
             const previewHtml = `
-                <p><strong>${data.length} vehicles found</strong></p>
-                <div class="preview-box">
+                <p class="mb-2"><strong>${data.length} vehicles found</strong></p>
+                <div class="bg-white rounded p-3 border">
                     ${preview.map(vehicle => `
-                        <div class="preview-item">
+                        <div class="flex justify-between py-1 border-b last:border-b-0">
                             <span>${vehicle.plateNumber} - ${vehicle.make} ${vehicle.model}</span>
-                            <span style="color: ${vehicle.status === 'active' ? 'green' : vehicle.status === 'expiring' ? 'orange' : 'red'}">
+                            <span class="text-${vehicle.status === 'active' ? 'green' : vehicle.status === 'expiring' ? 'orange' : 'red'}-600">
                                 ${vehicle.remainingDistance.toLocaleString()} km
                             </span>
                         </div>
                     `).join('')}
-                    ${data.length > 3 ? `<div style="padding: 5px 0; color: #666;">... and ${data.length - 3} more vehicles</div>` : ''}
+                    ${data.length > 3 ? `<div class="py-1 text-gray-500">... and ${data.length - 3} more vehicles</div>` : ''}
                 </div>
             `;
             
@@ -505,9 +275,12 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
             vehicles = csvImportData;
             updateStatsCards();
             filterAndDisplayVehicles();
+            updateDebugInfo();
             
             cancelCsvImport();
             showSuccessMessage(`Successfully imported ${vehicles.length} vehicles from CSV`);
+            
+            console.log('Imported vehicles:', vehicles);
         }
 
         function cancelCsvImport() {
@@ -515,6 +288,144 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
             document.getElementById('csv-status').textContent = '';
             document.getElementById('csv-file-input').value = '';
             csvImportData = null;
+        }
+
+        function downloadCsvTemplate() {
+            const template = `plate,make,model,year,odometer,license_end_odometer
+TEST-001,Toyota,Hilux,2023,45000,47500
+TEST-002,Ford,Ranger,2022,78000,78800
+TEST-003,Mitsubishi,Triton,2021,65000,64500`;
+            
+            const blob = new Blob([template], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ruc_vehicle_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showSuccessMessage('CSV template downloaded');
+        }
+
+        // MyGeotab Add-In registration
+        if (typeof geotab !== 'undefined') {
+            geotab.addin.rucManagement = function(api, state) {
+                console.log('Add-In initializing with API:', api);
+                geotabApi = api;
+                currentState = state;
+                
+                return {
+                    initialize: function(freshApi, freshState, callback) {
+                        console.log('RUC Management Add-In initializing...');
+                        geotabApi = freshApi;
+                        currentState = freshState;
+                        
+                        document.getElementById('addin-status').textContent = 'Initialized';
+                        document.getElementById('api-status').textContent = 'Available';
+                        updateDebugInfo();
+                        
+                        loadVehicleData().then(() => {
+                            callback();
+                        }).catch(error => {
+                            console.error('Failed to load initial data:', error);
+                            showError('Failed to load initial data: ' + error.message);
+                            callback();
+                        });
+                    },
+                    
+                    focus: function(freshApi, freshState) {
+                        geotabApi = freshApi;
+                        currentState = freshState;
+                        console.log('Add-In focused');
+                        loadVehicleData();
+                    },
+                    
+                    blur: function() {
+                        console.log('RUC Management Add-In blur');
+                    }
+                };
+            };
+        }
+
+        function updateDebugInfo() {
+            const debugInfo = document.getElementById('debug-info');
+            const now = new Date().toLocaleTimeString();
+            
+            let status = 'API Available: ' + (geotabApi ? 'Yes' : 'No');
+            status += ' | Time: ' + now;
+            status += ' | Vehicles: ' + vehicles.length;
+            
+            const statusElement = debugInfo.querySelector('p:last-child') || document.createElement('p');
+            statusElement.textContent = status;
+            if (!debugInfo.contains(statusElement)) {
+                debugInfo.appendChild(statusElement);
+            }
+        }
+
+        async function testConnection() {
+            console.log('Testing API connection...');
+            
+            if (!geotabApi) {
+                showError('No API available. Make sure this Add-In is installed in MyGeotab.');
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                const devices = await geotabApi.call('Get', {
+                    typeName: 'Device',
+                    resultsLimit: 1
+                });
+                
+                console.log('API test successful. Found devices:', devices.length);
+                showSuccessMessage('API connection successful! Found ' + devices.length + ' device(s)');
+                showLoading(false);
+                
+            } catch (error) {
+                console.error('API test failed:', error);
+                showError('API test failed: ' + error.message);
+                showLoading(false);
+            }
+        }
+
+        async function loadVehicleData() {
+            try {
+                showLoading(true);
+                hideError();
+                
+                console.log('Loading vehicle data from MyGeotab API...');
+                
+                if (!geotabApi) {
+                    throw new Error('MyGeotab API not available');
+                }
+                
+                const devices = await geotabApi.call('Get', {
+                    typeName: 'Device'
+                });
+                
+                console.log('Loaded ' + devices.length + ' devices from API');
+                
+                if (!devices || devices.length === 0) {
+                    showError('No vehicles found in your MyGeotab account. Please check your permissions or add vehicles to continue.');
+                    return;
+                }
+                
+                vehicles = transformMyGeotabData(devices);
+                
+                updateStatsCards();
+                filterAndDisplayVehicles();
+                updateDebugInfo();
+                
+                showLoading(false);
+                
+            } catch (error) {
+                console.error('Error loading vehicle data:', error);
+                showError('Failed to load vehicle data: ' + error.message);
+                showLoading(false);
+            }
         }
 
         function loadMockData() {
@@ -558,46 +469,58 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
             
             updateStatsCards();
             filterAndDisplayVehicles();
+            updateDebugInfo();
             showLoading(false);
         }
 
-        async function loadVehicleData() {
+        async function refreshOdometerData() {
+            console.log('Refresh button clicked!');
+            
             if (!geotabApi) {
-                loadMockData();
+                console.log('No API available, using mock refresh');
+                mockRefresh();
                 return;
             }
             
             try {
-                showLoading(true);
+                setRefreshState(true);
                 hideError();
+                console.log('Refreshing odometer data...');
                 
                 const devices = await geotabApi.call('Get', {
-                    typeName: 'Device'
+                    typeName: 'Device',
+                    resultsLimit: 50
                 });
                 
-                if (!devices || devices.length === 0) {
-                    showError('No vehicles found in your MyGeotab account');
-                    return;
-                }
+                console.log('Fetching live odometer data for ' + devices.length + ' devices...');
                 
-                vehicles = transformMyGeotabData(devices);
+                const updatedCount = await fetchLiveOdometerData(devices);
+                
                 updateStatsCards();
                 filterAndDisplayVehicles();
-                showLoading(false);
+                updateDebugInfo();
+                
+                setRefreshState(false);
+                
+                if (updatedCount > 0) {
+                    console.log('Successfully updated odometer data for ' + updatedCount + ' vehicles');
+                    showSuccessMessage('Updated odometer data for ' + updatedCount + ' vehicles');
+                } else {
+                    showWarningMessage('No live odometer data available. Vehicles may be offline or not reporting.');
+                }
                 
             } catch (error) {
-                console.error('Error loading vehicle data:', error);
-                showError('Failed to load vehicle data: ' + error.message);
-                showLoading(false);
+                console.error('Error refreshing odometer data:', error);
+                setRefreshState(false);
+                showError('Failed to refresh odometer data: ' + error.message);
             }
         }
 
-        function refreshOdometerData() {
-            console.log('Refresh button clicked!');
+        function mockRefresh() {
             setRefreshState(true);
             
             setTimeout(() => {
-                // Simulate refresh for testing
+                // Simulate odometer updates
                 vehicles = vehicles.map(vehicle => {
                     const odometerChange = Math.floor(Math.random() * 50) + 10;
                     const newOdometer = vehicle.currentOdometer + odometerChange;
@@ -621,9 +544,110 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
                 
                 updateStatsCards();
                 filterAndDisplayVehicles();
+                updateDebugInfo();
                 setRefreshState(false);
-                showSuccessMessage('Odometer data refreshed');
+                showSuccessMessage('Mock refresh completed - odometer values updated');
             }, 1500);
+        }
+
+        async function fetchLiveOdometerData(devices) {
+            return new Promise((resolve, reject) => {
+                const results = [];
+                const now = new Date().toISOString();
+                const calls = [];
+                const diagnostic = {
+                    id: "DiagnosticOdometerAdjustmentId"
+                };
+
+                console.log('Setting up API calls for odometer data...');
+
+                devices.forEach(function (device) {
+                    results.push({
+                        id: device.id,
+                        name: device.name,
+                        vehicleIdentificationNumber: device.vehicleIdentificationNumber,
+                        device: device
+                    });
+                    calls.push({
+                        method: "Get",
+                        params: {
+                            typeName: "StatusData",
+                            search: {
+                                fromDate: now,
+                                toDate: now,
+                                diagnosticSearch: diagnostic,
+                                deviceSearch: { id: device.id }
+                            }
+                        }
+                    });
+                });
+
+                console.log('Executing ' + calls.length + ' API calls for odometer data...');
+
+                geotabApi.call("ExecuteMultiCall", {
+                    calls: calls
+                }, function (callResults) {
+                    try {
+                        let statusData, i, updatedCount = 0;
+                        
+                        console.log('Processing ' + callResults.length + ' API responses...');
+                        
+                        for (i = 0; i < callResults.length; i++) {
+                            if (callResults[i] && callResults[i].length > 0) {
+                                statusData = callResults[i][0];
+                                if (statusData && statusData.data) {
+                                    results[i].odometer = statusData.data;
+                                    console.log('Got odometer data for ' + results[i].name + ': ' + statusData.data);
+                                } else {
+                                    console.log('No odometer data for ' + results[i].name);
+                                }
+                            } else {
+                                console.log('Empty response for ' + results[i].name);
+                            }
+                        }
+                        
+                        // Update vehicles array with live odometer data
+                        vehicles = vehicles.map(vehicle => {
+                            const liveData = results.find(r => r.id === vehicle.id);
+                            if (liveData && liveData.odometer) {
+                                const newOdometer = Math.round(liveData.odometer);
+                                const remainingDistance = vehicle.licenseEndOdometer - newOdometer;
+                                
+                                let status = 'active';
+                                if (remainingDistance <= 0) {
+                                    status = 'expired';
+                                } else if (remainingDistance <= 2000) {
+                                    status = 'expiring';
+                                }
+                                
+                                updatedCount++;
+                                
+                                return {
+                                    ...vehicle,
+                                    currentOdometer: newOdometer,
+                                    remainingDistance: remainingDistance,
+                                    status: status,
+                                    lastUpdated: new Date().toLocaleTimeString()
+                                };
+                            }
+                            return vehicle;
+                        });
+                        
+                        console.log('Successfully updated ' + updatedCount + ' vehicles with live odometer data');
+                        resolve(updatedCount);
+                    } catch (error) {
+                        console.error('Error processing odometer data:', error);
+                        reject(error);
+                    }
+                }, function(error) {
+                    console.error('ExecuteMultiCall failed:', error);
+                    reject(error);
+                });
+            });
+        }
+
+        function retryLoadData() {
+            loadVehicleData();
         }
 
         function transformMyGeotabData(devices) {
@@ -642,7 +666,7 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
                 return {
                     id: device.id,
                     plateNumber: device.name || 'Unknown',
-                    make: 'Fleet Vehicle',
+                    make: device.vehicleIdentificationNumber ? 'Fleet Vehicle' : 'Unknown',
                     model: device.comment || 'Model Unknown',
                     year: new Date().getFullYear(),
                     currentOdometer: latestOdometer,
@@ -668,17 +692,25 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
             };
             
             const statsHtml = `
-                <div class="stat-card ${statusFilter === null ? 'active' : ''}" onclick="setStatusFilter(null)">
-                    <h2>🚛 Total Vehicles ${stats.totalVehicles}</h2>
+                <div class="p-6 bg-white rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${statusFilter === null ? 'border-2 border-blue-500' : ''}" onclick="setStatusFilter(null)">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <span class="mr-2">🚛</span> Total Vehicles ${stats.totalVehicles}
+                    </h2>
                 </div>
-                <div class="stat-card green ${statusFilter === 'active' ? 'active' : ''}" onclick="setStatusFilter('active')">
-                    <h2>✅ Active Licenses ${stats.activeLicenses}</h2>
+                <div class="p-6 bg-green-50 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${statusFilter === 'active' ? 'border-2 border-blue-500' : ''}" onclick="setStatusFilter('active')">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center text-green-800">
+                        <span class="mr-2">✅</span> Active Licenses ${stats.activeLicenses}
+                    </h2>
                 </div>
-                <div class="stat-card orange ${statusFilter === 'expiring' ? 'active' : ''}" onclick="setStatusFilter('expiring')">
-                    <h2>⚠️ Expiring (≤2000km) ${stats.expiringSoon}</h2>
+                <div class="p-6 bg-orange-50 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${statusFilter === 'expiring' ? 'border-2 border-blue-500' : ''}" onclick="setStatusFilter('expiring')">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center text-orange-800">
+                        <span class="mr-2">⚠️</span> Expiring (≤2000km) ${stats.expiringSoon}
+                    </h2>
                 </div>
-                <div class="stat-card red ${statusFilter === 'expired' ? 'active' : ''}" onclick="setStatusFilter('expired')">
-                    <h2>❌ Expired ${stats.expired}</h2>
+                <div class="p-6 bg-red-50 rounded-lg shadow cursor-pointer transition-all hover:shadow-md ${statusFilter === 'expired' ? 'border-2 border-blue-500' : ''}" onclick="setStatusFilter('expired')">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center text-red-800">
+                        <span class="mr-2">❌</span> Expired ${stats.expired}
+                    </h2>
                 </div>
             `;
             
@@ -687,7 +719,8 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
 
         function filterAndDisplayVehicles() {
             filteredVehicles = vehicles.filter(vehicle => {
-                return statusFilter === null || vehicle.status === statusFilter;
+                const matchesStatus = statusFilter === null || vehicle.status === statusFilter;
+                return matchesStatus;
             });
             
             updateFilterInfo();
@@ -699,7 +732,7 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
             
             if (statusFilter) {
                 const statusName = statusFilter === 'expiring' ? 'expiring soon' : statusFilter;
-                filterInfo.textContent = `Showing ${filteredVehicles.length} of ${vehicles.length} vehicles (status: ${statusName})`;
+                filterInfo.textContent = 'Showing ' + filteredVehicles.length + ' of ' + vehicles.length + ' vehicles (status: ' + statusName + ')';
                 filterInfo.classList.remove('hidden');
             } else {
                 filterInfo.classList.add('hidden');
@@ -722,23 +755,27 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
                 const formattedDistance = formatDistance(vehicle.remainingDistance);
                 
                 return `
-                    <tr>
-                        <td>
-                            <div style="display: flex; align-items: center;">
-                                <div class="vehicle-icon">🚛</div>
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center mr-3">
+                                    <span class="text-gray-500">🚛</span>
+                                </div>
                                 <div>
-                                    <div style="font-weight: bold;">${vehicle.plateNumber}</div>
-                                    <div style="color: #666; font-size: 12px;">${vehicle.make} ${vehicle.model} ${vehicle.year}</div>
+                                    <div class="text-sm font-medium text-gray-900">${vehicle.plateNumber}</div>
+                                    <div class="text-sm text-gray-500">${vehicle.make} ${vehicle.model} ${vehicle.year}</div>
                                 </div>
                             </div>
                         </td>
-                        <td>${statusBadge}</td>
-                        <td>
-                            <div>${vehicle.currentOdometer.toLocaleString()} km</div>
-                            ${vehicle.lastUpdated ? `<div style="color: #666; font-size: 11px;">Updated: ${vehicle.lastUpdated}</div>` : ''}
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            ${statusBadge}
                         </td>
-                        <td>
-                            <span style="font-weight: bold; color: ${getDistanceColor(vehicle.status)}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">${vehicle.currentOdometer.toLocaleString()} km</div>
+                            ${vehicle.lastUpdated ? '<div class="text-xs text-gray-500">Updated: ' + vehicle.lastUpdated + '</div>' : ''}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-medium ${getDistanceColor(vehicle.status)}">
                                 ${formattedDistance}
                             </span>
                         </td>
@@ -751,27 +788,27 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
 
         function getStatusBadge(status) {
             const badges = {
-                active: '<span class="status-badge status-active">✅ Active</span>',
-                expiring: '<span class="status-badge status-expiring">⚠️ Expiring Soon</span>',
-                expired: '<span class="status-badge status-expired">❌ Expired</span>'
+                active: '<span class="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">✅ Active</span>',
+                expiring: '<span class="inline-flex items-center px-3 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">⚠️ Expiring Soon</span>',
+                expired: '<span class="inline-flex items-center px-3 py-1 bg-red-100 text-red-800 text-xs rounded-full">❌ Expired</span>'
             };
             return badges[status] || '';
         }
 
         function getDistanceColor(status) {
             const colors = {
-                active: '#2e7d32',
-                expiring: '#f57c00',
-                expired: '#d32f2f'
+                active: 'text-green-600',
+                expiring: 'text-orange-600',
+                expired: 'text-red-600'
             };
-            return colors[status] || '#333';
+            return colors[status] || 'text-gray-900';
         }
 
         function formatDistance(distance) {
             if (distance < 0) {
-                return `-${Math.abs(distance).toLocaleString()} km`;
+                return '-' + Math.abs(distance).toLocaleString() + ' km';
             }
-            return `${distance.toLocaleString()} km`;
+            return distance.toLocaleString() + ' km';
         }
 
         function setRefreshState(isRefreshing) {
@@ -781,17 +818,15 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
             
             if (isRefreshing) {
                 refreshBtn.disabled = true;
+                refreshBtn.classList.add('opacity-50', 'cursor-not-allowed');
                 refreshIcon.innerHTML = '⏳';
                 refreshText.textContent = 'Refreshing...';
             } else {
                 refreshBtn.disabled = false;
+                refreshBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 refreshIcon.innerHTML = '🔄';
                 refreshText.textContent = 'Refresh Odometer';
             }
-        }
-
-        function retryLoadData() {
-            loadVehicleData();
         }
 
         function showError(message) {
@@ -807,7 +842,7 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
 
         function showSuccessMessage(message) {
             const notification = document.createElement('div');
-            notification.className = 'success';
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
             notification.textContent = '✓ ' + message;
             document.body.appendChild(notification);
             
@@ -816,6 +851,19 @@ TEST-003,Mitsubishi,Triton,2021,65000,64500`;
                     document.body.removeChild(notification);
                 }
             }, 3000);
+        }
+
+        function showWarningMessage(message) {
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-orange-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            notification.textContent = '⚠ ' + message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+            }, 4000);
         }
 
         function showLoading(show) {
