@@ -1,4 +1,90 @@
 
+
+// --- Direct MyGeotab API Runner Odometer Fetch with Raw Fallback ---
+useEffect(() => {
+    if (typeof api === "undefined" || !vehicles) {
+        console.error("Geotab API not available or vehicles undefined");
+        return;
+    }
+
+    var group = { id: "GroupCompanyId" }, // Replace with actual group ID
+        results: any[] = [];
+
+    api.call("Get", {
+        typeName: "Device",
+        search: { "groups": [group] },
+        resultsLimit: 100
+    }, function (devices: any[]) {
+        var now = new Date().toISOString(),
+            callsAdjusted: any[] = [],
+            callsRaw: any[] = [],
+            diagnosticAdjusted = { id: "DiagnosticOdometerAdjustmentId" }, // Working ID from API Runner
+            diagnosticRaw = { id: "DiagnosticOdometerId" }; // Raw odometer ID from API Runner
+
+        devices.forEach(function (device: any) {
+            results.push({
+                id: device.id,
+                name: device.name,
+                vehicleIdentificationNumber: device.vehicleIdentificationNumber
+            });
+            callsAdjusted.push({
+                method: "Get",
+                params: {
+                    typeName: "StatusData",
+                    search: {
+                        fromDate: now,
+                        toDate: now,
+                        diagnosticSearch: diagnosticAdjusted,
+                        deviceSearch: { id: device.id }
+                    }
+                }
+            });
+            callsRaw.push({
+                method: "Get",
+                params: {
+                    typeName: "StatusData",
+                    search: {
+                        fromDate: now,
+                        toDate: now,
+                        diagnosticSearch: diagnosticRaw,
+                        deviceSearch: { id: device.id }
+                    }
+                }
+            });
+        });
+
+        // First get adjusted readings
+        api.call("ExecuteMultiCall", { calls: callsAdjusted }, function (adjustedResults: any[]) {
+            for (var i = 0; i < adjustedResults.length; i++) {
+                var statusData = adjustedResults[i][0];
+                if (statusData) {
+                    results[i].odometer = statusData.data;
+                }
+            }
+
+            // Then get raw readings for any missing
+            api.call("ExecuteMultiCall", { calls: callsRaw }, function (rawResults: any[]) {
+                for (var i = 0; i < rawResults.length; i++) {
+                    if (results[i].odometer == null && rawResults[i][0]) {
+                        results[i].odometer = rawResults[i][0].data;
+                    }
+                }
+
+                // Merge odometer readings into table data
+                const updatedVehicles = vehicles.map(v => {
+                    const match = results.find(r => r.id === v.id || r.name === v.name);
+                    return match ? { ...v, odometer: match.odometer } : v;
+                });
+
+                setVehicles(updatedVehicles);
+            });
+        });
+    });
+}, []);
+// --- End MyGeotab API Runner Odometer Fetch with Raw Fallback ---
+
+
+
 import { useEffect, useState } from "react";
 
 const [odometerData, setOdometerData] = useState<any[]>([]);
