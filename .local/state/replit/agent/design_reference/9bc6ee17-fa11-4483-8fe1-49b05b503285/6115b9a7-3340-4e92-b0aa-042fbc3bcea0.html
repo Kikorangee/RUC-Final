@@ -1,0 +1,484 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetTracker - RUC License Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0066CC',
+                        secondary: '#6B7280',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- @COMPONENT: AppLayout -->
+    <div class="min-h-screen flex">
+        <!-- @COMPONENT: Sidebar -->
+        <aside class="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                        <i class="fas fa-truck text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">FleetTracker</h1>
+                        <p class="text-sm text-gray-500">RUC Management</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg bg-primary text-white">
+                            <i class="fas fa-tachometer-alt w-5"></i>
+                            <span class="font-medium">Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-car w-5"></i>
+                            <span class="font-medium">Vehicles</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-id-card w-5"></i>
+                            <span class="font-medium">RUC Licenses</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-bell w-5"></i>
+                            <span class="font-medium">Alerts</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-chart-bar w-5"></i>
+                            <span class="font-medium">Reports</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-gray-600 text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900" data-bind="user.name">John Manager</p>
+                        <p class="text-xs text-gray-500" data-bind="user.role">Fleet Administrator</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <!-- @END_COMPONENT: Sidebar -->
+
+        <!-- @COMPONENT: MainContent -->
+        <main class="flex-1 overflow-auto">
+            <!-- @COMPONENT: Header -->
+            <header class="bg-white border-b border-gray-200 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Dashboard</h2>
+                        <p class="text-gray-600">Monitor your fleet's RUC license status</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button data-event="click:refreshData" class="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button data-event="click:openAddVehicleModal" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                            <i class="fas fa-plus mr-2"></i>
+                            Add Vehicle
+                        </button>
+                    </div>
+                </div>
+            </header>
+            <!-- @END_COMPONENT: Header -->
+
+            <div class="p-6">
+                <!-- @COMPONENT: AlertBanner -->
+                <div class="mb-6">
+                    <div class="bg-warning/10 border-l-4 border-warning p-4 rounded-r-lg mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-warning mr-3"></i>
+                            <div>
+                                <h3 class="text-sm font-medium text-warning">Expiring Soon</h3>
+                                <p class="text-sm text-gray-700 mt-1">
+                                    <span data-bind="alerts.expiringSoon.count">3</span> vehicles have RUC licenses expiring within 2000km
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-danger/10 border-l-4 border-danger p-4 rounded-r-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-times-circle text-danger mr-3"></i>
+                            <div>
+                                <h3 class="text-sm font-medium text-danger">License Expired</h3>
+                                <p class="text-sm text-gray-700 mt-1">
+                                    <span data-bind="alerts.expired.count">1</span> vehicle has an expired RUC license
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: AlertBanner -->
+
+                <!-- @COMPONENT: StatsCards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Total Vehicles</p>
+                                <p class="text-3xl font-bold text-gray-900" data-bind="stats.totalVehicles">24</p>
+                            </div>
+                            <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-car text-primary text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Active Licenses</p>
+                                <p class="text-3xl font-bold text-success" data-bind="stats.activeLicenses">20</p>
+                            </div>
+                            <div class="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-check-circle text-success text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Expiring Soon</p>
+                                <p class="text-3xl font-bold text-warning" data-bind="stats.expiringSoon">3</p>
+                            </div>
+                            <div class="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-exclamation-triangle text-warning text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Expired</p>
+                                <p class="text-3xl font-bold text-danger" data-bind="stats.expired">1</p>
+                            </div>
+                            <div class="w-12 h-12 bg-danger/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-times-circle text-danger text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: StatsCards -->
+
+                <!-- @COMPONENT: VehicleTable -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900">Vehicle Fleet Status</h3>
+                            <div class="flex items-center space-x-3">
+                                <div class="relative">
+                                    <input type="text" placeholder="Search vehicles..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                                </div>
+                                <button class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-filter mr-2"></i>
+                                    Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">License Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Odometer</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">License Expires At</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining Distance</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <!-- @MAP: vehicles.map(vehicle => ( -->
+                                <tr class="hover:bg-gray-50 transition-colors" data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center mr-3">
+                                                <i class="fas fa-truck text-gray-500"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium text-gray-900" data-bind="vehicle.plateNumber">ABC123</div>
+                                                <div class="text-sm text-gray-500" data-bind="vehicle.model">Ford Transit 2020</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger/10 text-danger">
+                                            <i class="fas fa-times-circle mr-1"></i>
+                                            Expired
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="vehicle.currentOdometer">152,350 km</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="vehicle.licenseExpiryOdometer">150,000 km</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-medium text-danger" data-bind="vehicle.remainingDistance">-2,350 km</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button data-event="click:updateOdometer" class="text-primary hover:text-blue-700 mr-3">
+                                            <i class="fas fa-edit mr-1"></i>
+                                            Update
+                                        </button>
+                                        <button data-event="click:renewLicense" class="text-success hover:text-green-700">
+                                            <i class="fas fa-refresh mr-1"></i>
+                                            Renew
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <tr class="hover:bg-gray-50 transition-colors" data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center mr-3">
+                                                <i class="fas fa-car text-gray-500"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium text-gray-900" data-bind="vehicle.plateNumber">XYZ789</div>
+                                                <div class="text-sm text-gray-500" data-bind="vehicle.model">Toyota Hiace 2019</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                                            Expiring Soon
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="vehicle.currentOdometer">87,200 km</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="vehicle.licenseExpiryOdometer">90,000 km</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-medium text-warning" data-bind="vehicle.remainingDistance">1,800 km</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button data-event="click:updateOdometer" class="text-primary hover:text-blue-700 mr-3">
+                                            <i class="fas fa-edit mr-1"></i>
+                                            Update
+                                        </button>
+                                        <button data-event="click:renewLicense" class="text-success hover:text-green-700">
+                                            <i class="fas fa-refresh mr-1"></i>
+                                            Renew
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <tr class="hover:bg-gray-50 transition-colors" data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center mr-3">
+                                                <i class="fas fa-truck text-gray-500"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-sm font-medium text-gray-900" data-bind="vehicle.plateNumber">DEF456</div>
+                                                <div class="text-sm text-gray-500" data-bind="vehicle.model">Isuzu NPR 2021</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Active
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="vehicle.currentOdometer">45,600 km</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="vehicle.licenseExpiryOdometer">55,000 km</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="text-sm font-medium text-success" data-bind="vehicle.remainingDistance">9,400 km</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button data-event="click:updateOdometer" class="text-primary hover:text-blue-700 mr-3">
+                                            <i class="fas fa-edit mr-1"></i>
+                                            Update
+                                        </button>
+                                        <button data-event="click:renewLicense" class="text-success hover:text-green-700">
+                                            <i class="fas fa-refresh mr-1"></i>
+                                            Renew
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: VehicleTable -->
+            </div>
+        </main>
+        <!-- @END_COMPONENT: MainContent -->
+    </div>
+    <!-- @END_COMPONENT: AppLayout -->
+
+    <!-- @COMPONENT: AddVehicleModal -->
+    <div id="addVehicleModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">Add New Vehicle</h3>
+                    <button data-event="click:closeModal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <form class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Plate Number</label>
+                    <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="ABC123" data-bind="form.plateNumber">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Vehicle Make & Model</label>
+                    <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Ford Transit" data-bind="form.model">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                    <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="2020" data-bind="form.year">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Odometer (km)</label>
+                    <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="50000" data-bind="form.currentOdometer">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">RUC License Expiry Odometer (km)</label>
+                    <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="60000" data-bind="form.licenseExpiryOdometer">
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" data-event="click:closeModal" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" data-event="click:submitVehicle" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Add Vehicle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: AddVehicleModal -->
+
+    <!-- @COMPONENT: UpdateOdometerModal -->
+    <div id="updateOdometerModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">Update Odometer Reading</h3>
+                    <button data-event="click:closeModal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <form class="p-6 space-y-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="text-sm text-gray-600">Vehicle</div>
+                    <div class="font-medium text-gray-900" data-bind="selectedVehicle.plateNumber">ABC123</div>
+                    <div class="text-sm text-gray-500" data-bind="selectedVehicle.model">Ford Transit 2020</div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Odometer Reading (km)</label>
+                    <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="form.newOdometer" placeholder="152350">
+                    <p class="text-xs text-gray-500 mt-1">Previous reading: <span data-bind="selectedVehicle.currentOdometer">150000 km</span></p>
+                </div>
+                
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="flex items-center text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <span>This will automatically update the remaining distance calculation</span>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" data-event="click:closeModal" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" data-event="click:submitOdometerUpdate" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Update Odometer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: UpdateOdometerModal -->
+
+    <script>
+        // TODO: Implement proper React state management, API calls, and business logic
+        (function() {
+            // Mock modal functionality for demonstration
+            const addVehicleModal = document.getElementById('addVehicleModal');
+            const updateOdometerModal = document.getElementById('updateOdometerModal');
+            
+            // Add Vehicle Modal
+            document.querySelector('[data-event="click:openAddVehicleModal"]').addEventListener('click', function() {
+                addVehicleModal.classList.remove('hidden');
+                addVehicleModal.classList.add('flex');
+            });
+            
+            // Close modals
+            document.querySelectorAll('[data-event="click:closeModal"]').forEach(button => {
+                button.addEventListener('click', function() {
+                    addVehicleModal.classList.add('hidden');
+                    addVehicleModal.classList.remove('flex');
+                    updateOdometerModal.classList.add('hidden');
+                    updateOdometerModal.classList.remove('flex');
+                });
+            });
+            
+            // Update Odometer Modal
+            document.querySelectorAll('[data-event="click:updateOdometer"]').forEach(button => {
+                button.addEventListener('click', function() {
+                    updateOdometerModal.classList.remove('hidden');
+                    updateOdometerModal.classList.add('flex');
+                });
+            });
+            
+            // Close modals when clicking outside
+            [addVehicleModal, updateOdometerModal].forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        modal.classList.add('hidden');
+                        modal.classList.remove('flex');
+                    }
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
