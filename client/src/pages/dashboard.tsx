@@ -1,8 +1,80 @@
 
-// Direct MyGeotab API odometer fetch inside add-in
 import { useEffect, useState } from "react";
 
 const [odometerData, setOdometerData] = useState<any[]>([]);
+
+useEffect(() => {
+    if (typeof api === "undefined") {
+        console.error("Geotab API not available");
+        return;
+    }
+
+    const group = { id: "GroupCompanyId" }; // Replace with actual group ID
+    const results: any[] = [];
+    const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days ago
+    const now = new Date().toISOString();
+
+    // Step 1: Get Diagnostic ID for Odometer Adjustment
+    api.call("Get", { typeName: "Diagnostic" }, function (diagnostics: any[]) {
+        const odoDiag = diagnostics.find(d => d.name && d.name.toLowerCase().includes("odometer adjustment"));
+        if (!odoDiag) {
+            console.error("Odometer Adjustment diagnostic not found");
+            return;
+        }
+
+        // Step 2: Get Devices in the group
+        api.call("Get", { typeName: "Device", search: { groups: [group] }, resultsLimit: 100 }, function (devices: any[]) {
+            const calls: any[] = [];
+            devices.forEach(device => {
+                results.push({
+                    id: device.id,
+                    name: device.name,
+                    vehicleIdentificationNumber: device.vehicleIdentificationNumber
+                });
+                calls.push({
+                    method: "Get",
+                    params: {
+                        typeName: "StatusData",
+                        search: {
+                            fromDate: from,
+                            toDate: now,
+                            diagnosticSearch: { id: odoDiag.id },
+                            deviceSearch: { id: device.id }
+                        },
+                        resultsLimit: 1, // Only get most recent
+                        sortOrder: "Descending"
+                    }
+                });
+            });
+
+            // Step 3: Execute multi-call for odometer readings
+            api.call("ExecuteMultiCall", { calls: calls }, function (callResults: any[]) {
+                for (let i = 0; i < callResults.length; i++) {
+                    const statusData = callResults[i][0];
+                    if (statusData) {
+                        results[i].odometer = statusData.data;
+                    }
+                }
+                setOdometerData(results);
+            });
+        });
+    });
+}, []);
+
+// Merge odometer readings into RUC table
+const vehiclesWithOdometer = vehicles.map(v => {
+    const match = odometerData.find(o => o.id === v.id || o.name === v.name);
+    return {
+        ...v,
+        odometer: match?.odometer ?? v.odometer,
+        kmsRemaining: match?.odometer ? v.rucExpiryKm - match.odometer : v.kmsRemaining
+    };
+});
+
+
+// Direct MyGeotab API odometer fetch inside add-in
+import { useEffect, useState } from "react";
+
 
 useEffect(() => {
     if (typeof api === "undefined") {
@@ -63,7 +135,6 @@ const vehiclesWithOdometer = vehicles.map(v => {
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const [odometerData, setOdometerData] = useState<any[]>([]);
 
 useEffect(() => {
     async function fetchOdometer() {
