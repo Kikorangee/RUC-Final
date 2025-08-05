@@ -1,4 +1,64 @@
 
+// Direct MyGeotab API odometer fetch inside add-in
+import { useEffect, useState } from "react";
+
+const [odometerData, setOdometerData] = useState<any[]>([]);
+
+useEffect(() => {
+    if (typeof api === "undefined") {
+        console.error("Geotab API object not found.");
+        return;
+    }
+    const group = { id: "GroupCompanyId" }; // Adjust this group ID if needed
+    const results: any[] = [];
+    const now = new Date().toISOString();
+    const diagnostic = { id: "DiagnosticOdometerAdjustmentId" };
+
+    api.call("Get", { typeName: "Device", search: { groups: [group] }, resultsLimit: 100 }, function (devices) {
+        const calls: any[] = [];
+        devices.forEach(function (device: any) {
+            results.push({
+                id: device.id,
+                name: device.name,
+                vehicleIdentificationNumber: device.vehicleIdentificationNumber
+            });
+            calls.push({
+                method: "Get",
+                params: {
+                    typeName: "StatusData",
+                    search: {
+                        fromDate: now,
+                        toDate: now,
+                        diagnosticSearch: diagnostic,
+                        deviceSearch: { id: device.id }
+                    }
+                }
+            });
+        });
+
+        api.call("ExecuteMultiCall", { calls: calls }, function (callResults: any) {
+            for (let i = 0; i < callResults.length; i++) {
+                const statusData = callResults[i][0];
+                if (statusData) {
+                    results[i].odometer = statusData.data;
+                }
+            }
+            setOdometerData(results);
+        });
+    });
+}, []);
+
+// Merge odometer data into RUC table calculations
+const vehiclesWithOdometer = vehicles.map(v => {
+    const odoMatch = odometerData.find(o => o.id === v.id);
+    return {
+        ...v,
+        odometer: odoMatch?.odometer || v.odometer,
+        kmsRemaining: (odoMatch?.odometer ? v.rucExpiryKm - odoMatch.odometer : v.kmsRemaining)
+    };
+});
+
+
 // Hook to fetch live odometer
 import { useEffect, useState } from "react";
 import axios from "axios";
