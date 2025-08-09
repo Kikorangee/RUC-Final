@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="frame-ancestors *;">
+  <meta http-equiv="X-Frame-Options" content="ALLOWALL">
+  <meta name="referrer" content="no-referrer-when-downgrade">
   <title>RUC Distance Dashboard</title>
   <style>
     :root{--bg:#0b1220;--card:#121a2b;--muted:#a7b1c2;--text:#e7eefc;--accent:#4ea1ff;--warn:#ffb020;--danger:#ff5a67;--ok:#27d17f}
@@ -53,9 +56,22 @@
     .editable-cell.edited{background-color:rgba(39,209,127,.1);border-left:3px solid var(--ok)}
     .editable-cell.editing{background-color:rgba(78,161,255,.2)}
     .edit-input{background:var(--bg);border:2px solid var(--accent);color:var(--text);padding:4px 8px;border-radius:6px;width:100%;font-family:inherit;font-size:inherit}
+    
+    /* CORS and iframe compatibility styles */
+    html, body { 
+      width: 100%; 
+      height: 100%; 
+      overflow-x: auto; 
+    }
+    
+    /* Ensure proper rendering in Geotab iframe */
+    .iframe-safe {
+      max-width: 100%;
+      overflow-x: auto;
+    }
   </style>
 </head>
-<body>
+<body class="iframe-safe">
   <header>
     <h1>RUC Distance Dashboard</h1>
     <div class="controls">
@@ -122,6 +138,24 @@
   </main>
 
   <script>
+    // CORS and iframe detection
+    (function() {
+      console.log('RUC Dashboard loaded');
+      console.log('In iframe:', window.parent !== window);
+      console.log('User agent:', navigator.userAgent);
+      
+      // Add message listener for parent window communication
+      window.addEventListener('message', function(event) {
+        console.log('Received message:', event.data);
+        // Handle messages from parent Geotab frame if needed
+      });
+      
+      // Notify parent frame that we're loaded
+      if (window.parent !== window) {
+        window.parent.postMessage('RUC Dashboard loaded', '*');
+      }
+    })();
+
     // --- Utilities ---
     function parseNumber(x){
       if(x === null || x === undefined || x === '') return null;
