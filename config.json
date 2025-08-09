@@ -3,7 +3,7 @@
   "supportEmail": "francis@directt.co.nz",
   "version": "1.0",
   "items": [{
-    "url": "https://kikorangee.github.io/RUC-Final/main.html",
+    "url": "https://cdn.jsdelivr.net/gh/kikorangee/RUC-Final@main/main.html",
     "path": "ActivityLink",
     "svgIcon": "https://cdn.jsdelivr.net/gh/feathericons/feather@4.29.0/icons/bar-chart-2.svg",
     "menuName": {
@@ -11,5 +11,4 @@
     }
   }],
   "files": {}
-
 }
