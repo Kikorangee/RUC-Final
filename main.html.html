@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RUC Distance Dashboard</title>
+  <style>
+    :root{--bg:#0b1220;--card:#121a2b;--muted:#a7b1c2;--text:#e7eefc;--accent:#4ea1ff;--warn:#ffb020;--danger:#ff5a67;--ok:#27d17f}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
+    header{padding:18px 22px;border-bottom:1px solid #1d2a44;display:flex;gap:14px;align-items:center;justify-content:space-between}
+    header h1{font-size:18px;margin:0;font-weight:700}
+    .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    .btn{background:var(--accent);border:none;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;transition:opacity 0.2s}
+    .btn.secondary{background:#22314f;color:var(--text)}
+    .btn.refresh{background:var(--ok)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .btn:hover:not(:disabled){opacity:0.9}
+    .input{background:#0e1628;border:1px solid #23324f;color:var(--text);padding:10px;border-radius:10px}
+    main{padding:18px}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+    .card{background:var(--card);border:1px solid #1d2a44;border-radius:16px;padding:14px}
+    .kpi{display:flex;flex-direction:column;gap:4px}
+    .kpi .label{color:var(--muted);font-size:12px}
+    .kpi .value{font-size:24px;font-weight:800}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{padding:4px 10px;border-radius:999px;border:1px solid #2a3a5d;color:var(--muted)}
+    .legend{display:flex;gap:8px;align-items:center}
+    .legend span{height:10px;width:10px;display:inline-block;border-radius:2px}
+    .legend .danger{background:var(--danger)}
+    .legend .warn{background:var(--warn)}
+    .legend .ok{background:var(--ok)}
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    thead th{color:var(--muted);font-weight:700;text-align:left;padding:8px}
+    tbody td{padding:10px 8px;background:#0f182b;border-top:1px solid #1f2b47;border-bottom:1px solid #1f2b47}
+    tbody tr{border-radius:12px}
+    tbody tr td:first-child{border-left:1px solid #1f2b47;border-top-left-radius:12px;border-bottom-left-radius:12px}
+    tbody tr td:last-child{border-right:1px solid #1f2b47;border-top-right-radius:12px;border-bottom-right-radius:12px}
+    .tag{padding:4px 8px;border-radius:7px;font-size:12px;font-weight:700;display:inline-block}
+    .tag.danger{background:rgba(255,90,103,.12);color:#ff8c94;border:1px solid rgba(255,90,103,.3)}
+    .tag.warn{background:rgba(255,176,32,.12);color:#ffd08a;border:1px solid rgba(255,176,32,.3)}
+    .tag.ok{background:rgba(39,209,127,.12);color:#8cf0c1;border:1px solid rgba(39,209,127,.3)}
+    .flex{display:flex;align-items:center;gap:10px}
+    .grow{flex:1}
+    canvas{width:100%;height:220px;background:#0e1628;border-radius:12px;border:1px solid #1d2a44}
+    .foot{color:var(--muted);font-size:12px;margin-top:6px}
+    .hidden{display:none}
+    .info-box{background:rgba(78,161,255,.1);border:1px solid rgba(78,161,255,.3);border-radius:12px;padding:14px;margin-bottom:14px}
+    .info-box h4{margin:0 0 8px 0;color:var(--accent)}
+    .info-box p{margin:0;color:var(--text);line-height:1.4}
+    .editable-cell{cursor:pointer;position:relative;transition:background-color 0.2s}
+    .editable-cell:hover{background-color:rgba(78,161,255,.1)}
+    .editable-cell.edited{background-color:rgba(39,209,127,.1);border-left:3px solid var(--ok)}
+    .editable-cell.editing{background-color:rgba(78,161,255,.2)}
+    .edit-input{background:var(--bg);border:2px solid var(--accent);color:var(--text);padding:4px 8px;border-radius:6px;width:100%;font-family:inherit;font-size:inherit}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>RUC Distance Dashboard</h1>
+    <div class="controls">
+      <input id="csvFile" class="input" type="file" accept=".csv" />
+      <button class="btn" id="btnExport" disabled>Export filtered CSV</button>
+      <label class="pill"><input type="checkbox" id="onlyAtRisk" /> Only at risk (overdue or &lt; 2000km)</label>
+      <input id="search" class="input" type="search" placeholder="Search (device, plate, fleet #)" />
+    </div>
+  </header>
+
+  <main>
+    <div class="info-box">
+      <h4>📊 RUC Distance Dashboard</h4>
+      <p><strong>Live data:</strong> Run <code>python ODO4_enhanced.py</code> then load <code>upload2_completed.csv</code><br>
+      <strong>Edit expiry:</strong> Click any expiry value to update RUC limits (shows green highlight when edited)<br>
+      <strong>Overdue vehicles:</strong> Red tags show how many km over the RUC limit</p>
+    </div>
+
+    <div class="grid">
+      <section class="card" style="grid-column: span 12;">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div class="legend">
+            <span class="danger"></span><small>Overdue / &lt; 1000 km</small>
+            <span class="warn" style="margin-left:12px"></span><small>1000–2000 km</small>
+            <span class="ok" style="margin-left:12px"></span><small>&gt; 2000 km</small>
+          </div>
+          <div class="foot" id="meta">No file loaded.</div>
+        </div>
+      </section>
+
+      <section class="card" style="grid-column: span 3;">
+        <div class="kpi"><div class="label">Vehicles</div><div class="value" id="kpiTotal">–</div></div>
+      </section>
+      <section class="card" style="grid-column: span 3;">
+        <div class="kpi"><div class="label">Avg Distance Remaining</div><div class="value" id="kpiAvg">–</div></div>
+      </section>
+      <section class="card" style="grid-column: span 3;">
+        <div class="kpi"><div class="label">Overdue</div><div class="value" id="kpiOverdue">–</div></div>
+      </section>
+      <section class="card" style="grid-column: span 3;">
+        <div class="kpi"><div class="label">&lt; 1000 km</div><div class="value" id="kpi1000">–</div></div>
+      </section>
+
+      <section class="card" style="grid-column: span 12;">
+        <canvas id="chart"></canvas>
+      </section>
+
+      <section class="card" style="grid-column: span 12;">
+        <table>
+          <thead>
+            <tr>
+              <th data-key="device id" class="sortable">Device ID ▲▼</th>
+              <th data-key="Fleet #" class="sortable">Fleet # ▲▼</th>
+              <th data-key="REG Plate" class="sortable">REG Plate ▲▼</th>
+              <th data-key="expiry" class="sortable">Expiry (km) ▲▼ 📝</th>
+              <th data-key="odometer" class="sortable">Odometer (km) ▲▼</th>
+              <th data-key="distance remaining" class="sortable">Distance Remaining (km) ▲▼</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // --- Utilities ---
+    function parseNumber(x){
+      if(x === null || x === undefined || x === '') return null;
+      
+      // Handle string values
+      const str = String(x).trim();
+      if(str === '' || str.toLowerCase() === 'n/a' || str.toLowerCase() === 'na') return null;
+      
+      // Remove common formatting (commas, spaces, quotes)
+      const cleaned = str.replace(/[,\s"']/g, "");
+      if(cleaned === '') return null;
+      
+      const v = Number(cleaned);
+      return Number.isFinite(v) ? v : null;
+    }
+
+    // CSV parser that respects quotes and commas-in-quotes
+    function parseCSV(text){
+      const rows=[]; let row=[]; let cur=''; let inQ=false; let i=0;
+      while(i<text.length){
+        const c=text[i];
+        if(inQ){
+          if(c==='"'){
+            if(text[i+1]==='"'){ cur+='"'; i++; }
+            else { inQ=false; }
+          } else { cur+=c; }
+        } else {
+          if(c==='"') inQ=true;
+          else if(c===','){ row.push(cur); cur=''; }
+          else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+          else if(c==='\r'){ /* skip */ }
+          else { cur+=c; }
+        }
+        i++;
+      }
+      if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+      // header -> objects
+      const header = rows.shift()||[];
+      return rows.filter(r=>r.length>0 && r.some(v=>v!=='')).map(r=>{
+        const o={};
+        header.forEach((h,idx)=>{ o[h.trim()] = (r[idx]??'').trim(); });
+        return o;
+      });
+    }
+
+    function downloadCSV(filename, rows){
+      if(!rows.length) return;
+      const headers = Object.keys(rows[0]);
+      const esc = v => '"'+String(v).replaceAll('"','""')+'"';
+      const lines = [headers.map(esc).join(',')].concat(rows.map(r=> headers.map(h=> esc(r[h]??'')).join(',')));
+      const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    }
+
+    // --- Inline Editing ---
+    function editCell(event) {
+      const cell = event.target;
+      if (cell.classList.contains('editing')) return; // Already editing
+      
+      const deviceId = cell.dataset.deviceId;
+      const field = cell.dataset.field;
+      const currentValue = cell.textContent.replace(/,/g, ''); // Remove commas
+      
+      // Create input field
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.className = 'edit-input';
+      input.value = currentValue;
+      input.min = '0';
+      input.step = '1';
+      
+      // Replace cell content with input
+      cell.classList.add('editing');
+      cell.innerHTML = '';
+      cell.appendChild(input);
+      input.focus();
+      input.select();
+      
+      // Save on Enter or blur
+      function saveEdit() {
+        const newValue = parseNumber(input.value);
+        cell.classList.remove('editing');
+        
+        if (newValue !== null && newValue !== parseNumber(currentValue)) {
+          // Update the data
+          const row = rows.find(r => r['device id'] === deviceId);
+          if (row) {
+            const oldExpiry = row[field];
+            const oldRemaining = row['distance remaining'];
+            
+            row[field] = newValue;
+            row['_manually_edited'] = true;
+            
+            // Recalculate distance remaining
+            if (row['expiry'] !== null && row['odometer'] !== null) {
+              row['distance remaining'] = Math.round(row['expiry'] - row['odometer']);
+              
+              console.log(`Device ${deviceId}: Updated ${field} from ${oldExpiry} to ${newValue}`);
+              console.log(`Device ${deviceId}: Distance remaining changed from ${oldRemaining} to ${row['distance remaining']}`);
+              
+              // Show temporary success message
+              const originalText = cell.textContent;
+              cell.style.backgroundColor = 'rgba(39,209,127,.3)';
+              cell.textContent = `✓ ${newValue.toLocaleString()}`;
+              
+              setTimeout(() => {
+                cell.style.backgroundColor = '';
+                applyFilters(); // Refresh the display
+                
+                // Update meta to show manual edits count
+                const editCount = rows.filter(r => r['_manually_edited']).length;
+                const metaEl = document.getElementById('meta');
+                const currentText = metaEl.textContent;
+                const baseText = currentText.split(' • ')[0];
+                metaEl.textContent = `${baseText} • ${editCount} manual edits`;
+              }, 500);
+              
+              return;
+            }
+          }
+        }
+        
+        // Restore original value if invalid or unchanged
+        cell.textContent = parseNumber(currentValue) !== null ? parseNumber(currentValue).toLocaleString() : '';
+      }
+      
+      // Cancel on Escape
+      function cancelEdit() {
+        cell.classList.remove('editing');
+        cell.textContent = parseNumber(currentValue) !== null ? parseNumber(currentValue).toLocaleString() : '';
+      }
+      
+      input.addEventListener('blur', saveEdit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveEdit();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelEdit();
+        }
+      });
+    }
+
+    // --- State ---
+    let raw = [];      // raw rows from CSV
+    let rows = [];     // normalized rows for display
+    let sortKey = 'distance remaining';
+    let sortDir = 'asc';
+
+    // --- Rendering ---
+    function normalize(data){
+      return data.map(r=>{
+        const deviceId = r['device id'] || '';
+        const expiry = parseNumber(r['expiry']);
+        let odo = parseNumber(r['odometer']);
+        
+        // If odometer appears to be in metres (very large), convert to km
+        if(odo !== null && odo > 1000000) odo = Math.round(odo/1000);
+        
+        // Always calculate distance remaining from expiry - odometer (don't trust CSV value)
+        let remaining = null;
+        if(expiry !== null && odo !== null){ 
+          remaining = Math.round(expiry - odo); // Can be negative for overdue
+        }
+        
+        return {
+          'device id': deviceId,
+          'Fleet #': r['Fleet #']||'',
+          'REG Plate': r['REG Plate']||'',
+          'expiry': expiry,
+          'odometer': odo,
+          'distance remaining': remaining,
+        };
+      });
+    }
+
+    function applyFilters(){
+      const onlyAtRisk = document.getElementById('onlyAtRisk').checked;
+      const q = document.getElementById('search').value.trim().toLowerCase();
+      let filtered = rows.slice();
+      if(onlyAtRisk){ 
+        filtered = filtered.filter(r=> {
+          const dist = r['distance remaining'];
+          return dist !== null && (dist < 0 || dist < 2000); // overdue or < 2000km
+        }); 
+      }
+      if(q){
+        filtered = filtered.filter(r=>
+          String(r['device id']).toLowerCase().includes(q) ||
+          String(r['REG Plate']).toLowerCase().includes(q) ||
+          String(r['Fleet #']).toLowerCase().includes(q)
+        );
+      }
+      filtered.sort((a,b)=>{
+        const av = a[sortKey]; const bv = b[sortKey];
+        if(av==null && bv!=null) return 1;
+        if(av!=null && bv==null) return -1;
+        if(av==null && bv==null) return 0;
+        if(typeof av === 'number' && typeof bv === 'number') return sortDir==='asc'? av-bv : bv-av;
+        return sortDir==='asc'? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+      });
+      renderTable(filtered);
+      renderKpis(filtered);
+      renderChart(filtered);
+      document.getElementById('btnExport').disabled = filtered.length===0;
+      document.getElementById('btnExport').onclick = ()=> downloadCSV('ruc_dashboard_filtered.csv', filtered.map(r=>({
+        'device id': r['device id'],
+        'Fleet #': r['Fleet #'],
+        'REG Plate': r['REG Plate'],
+        'expiry': r['expiry'],
+        'odometer': r['odometer'],
+        'distance remaining': r['distance remaining'],
+        'manually_edited': r['_manually_edited'] ? 'Yes' : ''
+      })));
+    }
+
+    function renderKpis(data){
+      const total = data.length;
+      const rem = data.map(r=>r['distance remaining']).filter(v=>v!=null);
+      const avg = rem.length? Math.round(rem.reduce((a,b)=>a+b,0)/rem.length) : null;
+      const overdue = data.filter(r=> (r['distance remaining']??0) < 0).length;
+      const lt1000 = data.filter(r=> {
+        const dist = r['distance remaining'];
+        return dist !== null && dist >= 0 && dist < 1000;
+      }).length;
+      
+      document.getElementById('kpiTotal').textContent = total;
+      document.getElementById('kpiAvg').textContent = avg==null? '–' : avg.toLocaleString();
+      document.getElementById('kpiOverdue').textContent = overdue;
+      document.getElementById('kpi1000').textContent = lt1000;
+    }
+
+    function renderTable(data){
+      const tb = document.getElementById('tbody');
+      tb.innerHTML = '';
+      for(const r of data){
+        const tr = document.createElement('tr');
+        const remaining = r['distance remaining'];
+        
+        let status, displayText;
+        if(remaining === null) {
+          status = 'warn';
+          displayText = 'n/a';
+        } else if(remaining < 0) {
+          status = 'danger';
+          displayText = `${Math.abs(remaining).toLocaleString()} km overdue`;
+        } else if(remaining < 1000) {
+          status = 'danger';
+          displayText = `${remaining.toLocaleString()} km`;
+        } else if(remaining < 2000) {
+          status = 'warn';
+          displayText = `${remaining.toLocaleString()} km`;
+        } else {
+          status = 'ok';
+          displayText = `${remaining.toLocaleString()} km`;
+        }
+        
+        // Make expiry editable with visual indicator if manually edited
+        const expiryClass = r['_manually_edited'] ? 'editable-cell edited' : 'editable-cell';
+        const expiryValue = r['expiry']!=null? r['expiry'].toLocaleString() : '';
+        
+        tr.innerHTML = `
+          <td>${r['device id']||''}</td>
+          <td>${r['Fleet #']||''}</td>
+          <td>${r['REG Plate']||''}</td>
+          <td class="${expiryClass}" data-device-id="${r['device id']}" data-field="expiry" title="Click to edit expiry">${expiryValue}</td>
+          <td>${r['odometer']!=null? r['odometer'].toLocaleString():''}</td>
+          <td><span class="tag ${status}">${displayText}</span></td>
+        `;
+        tb.appendChild(tr);
+      }
+      
+      // Add click handlers for editable cells
+      document.querySelectorAll('.editable-cell').forEach(cell => {
+        cell.addEventListener('click', editCell);
+      });
+    }
+
+    function renderChart(data){
+      const ctx = document.getElementById('chart').getContext('2d');
+      const buckets = [-Infinity,0,500,1000,1500,2000,3000,5000,10000,Infinity];
+      const labels = ['OVERDUE','0-499','500-999','1k-1.5k','1.5k-2k','2k-3k','3k-5k','5k-10k','>10k'];
+      const counts = new Array(labels.length).fill(0);
+      for(const r of data){
+        const v = r['distance remaining'];
+        if(v==null) continue;
+        let idx = 0;
+        for(let i=0;i<buckets.length-1;i++){
+          if(v>=buckets[i] && v<buckets[i+1]){ idx = i; break; }
+        }
+        counts[idx]++;
+      }
+      // Simple bar chart without external libs
+      const W = ctx.canvas.width, H = ctx.canvas.height;
+      ctx.clearRect(0,0,W,H);
+      const max = Math.max(1, ...counts);
+      const barW = Math.floor((W - 40) / counts.length) - 8; // padding
+      ctx.font = '12px system-ui';
+      ctx.fillStyle = '#a7b1c2';
+      ctx.textAlign = 'center';
+      // axes
+      ctx.strokeStyle = '#23324f';
+      ctx.beginPath(); ctx.moveTo(30,10); ctx.lineTo(30,H-30); ctx.lineTo(W-10,H-30); ctx.stroke();
+      for(let i=0;i<counts.length;i++){
+        const x = 40 + i*(barW+8);
+        const h = Math.round(((H-60) * counts[i]) / max);
+        const y = (H-30) - h;
+        // color by risk-ish
+        let fill = '#27d17f';
+        if(i===0) fill = '#ff5a67'; // overdue = red
+        else if(i<=3) fill = '#ff5a67'; // very low = red  
+        else if(i<=4) fill = '#ffb020'; // warning range = orange
+        ctx.fillStyle = fill;
+        ctx.fillRect(x, y, barW, h);
+        ctx.fillStyle = '#a7b1c2';
+        ctx.fillText(labels[i], x+barW/2, H-12);
+        ctx.fillText(String(counts[i]), x+barW/2, y-4);
+      }
+    }
+
+    // --- Events ---
+    document.getElementById('csvFile').addEventListener('change', e=>{
+      const file = e.target.files?.[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        raw = parseCSV(String(ev.target.result||''));
+        rows = normalize(raw);
+        document.getElementById('meta').textContent = `${file.name} • ${rows.length} rows`;
+        applyFilters();
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('onlyAtRisk').addEventListener('change', applyFilters);
+    document.getElementById('search').addEventListener('input', ()=>{
+      // simple debounce
+      clearTimeout(window.__deb); window.__deb = setTimeout(applyFilters, 180);
+    });
+
+    document.querySelectorAll('th.sortable').forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.getAttribute('data-key');
+        if(sortKey===key){ sortDir = (sortDir==='asc'?'desc':'asc'); }
+        else { sortKey = key; sortDir = 'asc'; }
+        applyFilters();
+      });
+    });
+  </script>
+</body>
+</html>
